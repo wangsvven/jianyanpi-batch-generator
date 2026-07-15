@@ -149,6 +149,14 @@ function setupFileInputs() {
 
 async function uploadFile(file, type) {
     if (!STATE.sessionId) { showToast('会话未初始化，请刷新', 'error'); return; }
+
+    // 前端文件大小校验 (500MB)
+    const MAX_SIZE = 500 * 1024 * 1024;
+    if (file.size > MAX_SIZE) {
+        showToast(`文件过大: ${formatSize(file.size)}，最大允许 ${formatSize(MAX_SIZE)}`, 'error');
+        return;
+    }
+
     const form = new FormData();
     form.append('file', file);
     form.append('session_id', STATE.sessionId);
@@ -218,7 +226,7 @@ function renderPanelFileList(type, files) {
             </div>
             <button class="file-del" onclick="deleteFile('${f.name}')" title="删除">&times;</button>
         </div>
-    `).join('');
+    `).join('') + `<div style="margin-top:8px;text-align:right;"><button class="btn btn-xs btn-ghost" onclick="deleteAllFiles('${type}')" style="color:var(--danger);font-size:11px;">🗑 全部删除</button></div>`;
 }
 
 async function deleteFile(filename) {
@@ -231,6 +239,26 @@ async function deleteFile(filename) {
         await refreshFiles();
         showToast('文件已删除', 'info');
     } catch (e) { showToast('删除失败', 'error'); }
+}
+
+// 批量删除某类型文件
+async function deleteAllFiles(type) {
+    const files = STATE.files.filter(f => f.type === type);
+    if (files.length === 0) return;
+    const typeLabel = type === 'word' ? 'Word 模板' : 'Excel 数据';
+    if (!confirm(`确定删除全部 ${files.length} 个${typeLabel}文件？`)) return;
+    let ok = 0, fail = 0;
+    for (const f of files) {
+        try {
+            await fetch('/api/files/delete', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ session_id: STATE.sessionId, filename: f.name })
+            });
+            ok++;
+        } catch (e) { fail++; }
+    }
+    await refreshFiles();
+    showToast(`已删除 ${ok} 个文件${fail > 0 ? `，${fail} 个失败` : ''}`, fail > 0 ? 'error' : 'success');
 }
 
 function formatSize(bytes) {
@@ -330,7 +358,10 @@ function renderTasks() {
                     <label class="form-label">工作表 (Sheet) <span style="color:var(--danger);">*</span> <span style="font-size:11px;color:var(--text-muted);font-weight:normal;">可多选</span></label>
                     <div class="sheet-checkbox-list" id="sheetList${i}">
                         ${sheets.length > 0
-                            ? sheets.map(s => `<label class="checkbox-label sheet-checkbox"><input type="checkbox" value="${s}" ${selectedSheets.includes(s) ? 'checked' : ''} onchange="onSheetCheckboxChange(${i})"><span>${s}</span></label>`).join('')
+                            ? `<div style="margin-bottom:6px;display:flex;gap:6px;">
+                                <button class="btn btn-xs btn-outline" onclick="sheetSelectAll(${i})" style="font-size:11px;padding:2px 8px;">全选</button>
+                                <button class="btn btn-xs btn-outline" onclick="sheetDeselectAll(${i})" style="font-size:11px;padding:2px 8px;">取消</button>
+                              </div>` + sheets.map(s => `<label class="checkbox-label sheet-checkbox"><input type="checkbox" value="${s}" ${selectedSheets.includes(s) ? 'checked' : ''} onchange="onSheetCheckboxChange(${i})"><span>${s}</span></label>`).join('')
                             : `<span class="text-muted" style="font-size:12px;">请先选择 Excel 文件</span>`
                         }
                     </div>
@@ -454,6 +485,18 @@ async function onSheetCheckboxChange(taskIndex) {
         delete STATE.excelColumns[taskIndex];
         renderTasks();
     }
+}
+
+function sheetSelectAll(taskIndex) {
+    const checkboxes = document.querySelectorAll(`#sheetList${taskIndex} input[type="checkbox"]`);
+    checkboxes.forEach(cb => cb.checked = true);
+    onSheetCheckboxChange(taskIndex);
+}
+
+function sheetDeselectAll(taskIndex) {
+    const checkboxes = document.querySelectorAll(`#sheetList${taskIndex} input[type="checkbox"]`);
+    checkboxes.forEach(cb => cb.checked = false);
+    onSheetCheckboxChange(taskIndex);
 }
 
 async function fetchColumns(taskIndex) {
@@ -862,9 +905,15 @@ function resetRunButton(btn) {
 }
 
 function pollProgress(taskId, btn) {
+    let pollCount = 0;
+    let consecutiveErrors = 0;
+    const MAX_ERRORS = 10;  // 连续 10 次失败后停止
     const interval = setInterval(async () => {
+        pollCount++;
         try {
             const res = await fetch(`/api/generate/progress/${taskId}`);
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            consecutiveErrors = 0;
             const data = await res.json();
             const p = data.progress || {};
             const total = p.total || 0;
@@ -905,12 +954,20 @@ function pollProgress(taskId, btn) {
                     summary.innerHTML = `<h3>✅ 生成完成</h3><p>成功 ${r.total_success} / ${r.total_count} 条，耗时 ${r.elapsed} 秒</p>${mergeHtml}`;
                 } else {
                     summary.className = 'result-summary error';
-                    summary.innerHTML = `<h3>❌ 生成出错</h3><p>${(data.result && data.result.error) || '未知错误'}</p>`;
+                    summary.innerHTML = `<h3>❌ 生成出错</h3><p>${(data.result && data.result.error) || '未知错误'}</p><div style="margin-top:12px;"><button class="btn btn-primary" onclick="startGenerate()">🔄 重试</button></div>`;
                 }
                 await refreshOutputs();
                 resetRunButton(btn);
             }
-        } catch (e) { clearInterval(interval); resetRunButton(btn); }
+        } catch (e) {
+            consecutiveErrors++;
+            if (consecutiveErrors >= MAX_ERRORS) {
+                clearInterval(interval);
+                showToast('与服务器的连接已断开，请检查服务是否运行', 'error');
+                document.getElementById('progressTitle').textContent = '连接断开';
+                resetRunButton(btn);
+            }
+        }
     }, 500);
 }
 
@@ -1101,6 +1158,19 @@ document.addEventListener('click', function(e) {
     if (e.target.classList.contains('modal-overlay')) {
         e.target.style.display = 'none';
         if (e.target.id === 'templateWorkbenchModal') saveWorkbenchState();
+    }
+});
+
+// Esc 键关闭所有弹窗
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        document.querySelectorAll('.modal-overlay').forEach(m => {
+            if (m.style.display !== 'none') {
+                m.style.display = 'none';
+                if (m.id === 'templateWorkbenchModal') saveWorkbenchState();
+                if (m.id === 'loadPresetModal') { window._rowSelectorData = null; }
+            }
+        });
     }
 });
 

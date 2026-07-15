@@ -128,6 +128,24 @@ def safe_filename(filename):
     return filename.strip().rstrip('.') or 'unnamed'
 
 
+def is_path_safe(file_path, allowed_dirs):
+    """
+    安全检查：确保 file_path 在允许的目录范围内（防止路径遍历攻击）
+
+    allowed_dirs: 允许的根目录列表（Path 对象）
+    返回: True=安全, False=非法路径
+    """
+    try:
+        resolved = Path(file_path).resolve()
+        for allowed in allowed_dirs:
+            allowed_resolved = Path(allowed).resolve()
+            if resolved == allowed_resolved or allowed_resolved in resolved.parents:
+                return True
+        return False
+    except Exception:
+        return False
+
+
 def get_session_dirs(session_id):
     """获取会话专属的上传/输出目录"""
     upload_dir = UPLOAD_DIR / session_id
@@ -229,6 +247,10 @@ def delete_file():
     upload_dir, _ = get_session_dirs(session_id)
     file_path = upload_dir / filename
 
+    # 安全检查：确保路径在上传目录内
+    if not is_path_safe(file_path, [upload_dir]):
+        return jsonify({'error': '非法路径'}), 403
+
     if file_path.exists():
         file_path.unlink()
         return jsonify({'status': 'ok'})
@@ -247,6 +269,10 @@ def excel_sheets():
     if not excel_path or not Path(excel_path).exists():
         return jsonify({'error': 'Excel 文件不存在'}), 404
 
+    # 安全检查：确保路径在上传目录内
+    if not is_path_safe(excel_path, [UPLOAD_DIR]):
+        return jsonify({'error': '非法路径'}), 403
+
     try:
         sheets = get_excel_sheets(excel_path)
         return jsonify({'sheets': sheets})
@@ -263,6 +289,10 @@ def excel_preview():
 
     if not excel_path or not Path(excel_path).exists():
         return jsonify({'error': 'Excel 文件不存在'}), 404
+
+    # 安全检查：确保路径在上传目录内
+    if not is_path_safe(excel_path, [UPLOAD_DIR]):
+        return jsonify({'error': '非法路径'}), 403
 
     try:
         result = get_excel_preview(excel_path, sheet_name, rows)
@@ -282,6 +312,10 @@ def template_placeholders():
 
     if not template_path or not Path(template_path).exists():
         return jsonify({'error': '模板文件不存在'}), 404
+
+    # 安全检查：确保路径在上传目录内
+    if not is_path_safe(template_path, [UPLOAD_DIR]):
+        return jsonify({'error': '非法路径'}), 403
 
     try:
         placeholders = extract_template_placeholders(template_path)
@@ -304,6 +338,9 @@ def export_excel_template():
     if placeholders is None:
         if not template_path or not Path(template_path).exists():
             return jsonify({'error': '模板文件不存在，请先上传模板'}), 404
+        # 安全检查
+        if not is_path_safe(template_path, [UPLOAD_DIR]):
+            return jsonify({'error': '非法路径'}), 403
         try:
             placeholders = extract_template_placeholders(template_path)
         except Exception as e:
@@ -356,12 +393,16 @@ def match_fields():
     }
 
     if template_path and Path(template_path).exists():
+        if not is_path_safe(template_path, [UPLOAD_DIR]):
+            return jsonify({'error': '模板路径非法'}), 403
         try:
             result['placeholders'] = extract_template_placeholders(template_path)
         except Exception:
             pass
 
     if excel_path and Path(excel_path).exists():
+        if not is_path_safe(excel_path, [UPLOAD_DIR]):
+            return jsonify({'error': 'Excel 路径非法'}), 403
         try:
             engine = get_excel_engine(excel_path)
             df = pd.read_excel(excel_path, sheet_name=sheet_name, nrows=0, engine=engine)
@@ -537,6 +578,11 @@ def download_file():
         return jsonify({'error': '未指定文件路径'}), 400
 
     path = Path(file_path)
+
+    # 安全检查：确保路径在上传或输出目录内
+    if not is_path_safe(path, [UPLOAD_DIR, OUTPUT_DIR]):
+        return jsonify({'error': '非法路径，仅允许下载上传/输出目录内的文件'}), 403
+
     if not path.exists():
         return jsonify({'error': '文件不存在'}), 404
 
@@ -745,7 +791,12 @@ def open_folder():
         return jsonify({'error': '目录不存在，请先生成文件'}), 404
 
     import subprocess
-    subprocess.Popen(['explorer', str(base.resolve())], shell=True)
+    import sys
+    if sys.platform == 'win32':
+        subprocess.Popen(['explorer', str(base.resolve())])
+    else:
+        subprocess.Popen(['open', str(base.resolve())] if sys.platform == 'darwin'
+                         else ['xdg-open', str(base.resolve())])
     return jsonify({'status': 'ok', 'path': str(base.resolve())})
 
 
@@ -774,7 +825,7 @@ if __name__ == '__main__':
 
     def _banner():
         print("=" * 60)
-        print("  检验批批量生成平台 v3.0")
+        print("  检验批批量生成平台 v2.1")
         print("=" * 60)
         print(f"  本机访问:   http://127.0.0.1:{PORT}")
         print(f"  局域网访问: http://{local_ip}:{PORT}")

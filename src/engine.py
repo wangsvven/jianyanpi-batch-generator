@@ -142,12 +142,10 @@ def generate_single_task(
 
     # 读取 Excel
     engine = get_excel_engine(str(excel_file))
-    xls = pd.ExcelFile(excel_file, engine=engine)
-
-    if sheet_name not in xls.sheet_names:
-        raise ValueError(f"找不到工作表 '{sheet_name}'，可用: {xls.sheet_names}")
-
-    df = pd.read_excel(xls, sheet_name=sheet_name)
+    with pd.ExcelFile(excel_file, engine=engine) as xls:
+        if sheet_name not in xls.sheet_names:
+            raise ValueError(f"找不到工作表 '{sheet_name}'，可用: {xls.sheet_names}")
+        df = pd.read_excel(xls, sheet_name=sheet_name)
 
     if filename_column not in df.columns:
         raise ValueError(f"找不到列名: '{filename_column}'，可用: {list(df.columns)}")
@@ -155,7 +153,7 @@ def generate_single_task(
     # 按需过滤行
     if row_filter is not None:
         valid_indices = [i for i in row_filter if 0 <= i < len(df)]
-        df = df.iloc[valid_indices]
+        df = df.iloc[valid_indices].reset_index(drop=True)
         if len(df) == 0:
             return 0, 0, []
 
@@ -192,6 +190,7 @@ def generate_single_task(
         except Exception as e:
             if progress_callback:
                 progress_callback(success_count + 1, total, f"行{index + 1}", f'error: {e}')
+            # 记录失败但仍继续下一行
 
     return success_count, total, output_files
 
@@ -554,8 +553,9 @@ def merge_documents(input_dir, output_file, sort_mode=3, date_sort_keyword=''):
             _strip_trailing_empty_paras(doc_to_append)
             composer.append(doc_to_append)
             success_count += 1
-        except Exception:
-            pass
+        except Exception as e:
+            import sys
+            print(f"[合并警告] 跳过文件 {fname}: {e}", file=sys.stderr)
 
     _remove_empty_sections_and_blank_lines(composer.doc)
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -660,8 +660,8 @@ def preview_merge_order(input_dir, sort_mode=3, date_sort_keyword=''):
 def get_excel_sheets(excel_path):
     """获取 Excel 工作表名称列表"""
     engine = get_excel_engine(excel_path)
-    xls = pd.ExcelFile(excel_path, engine=engine)
-    return xls.sheet_names
+    with pd.ExcelFile(excel_path, engine=engine) as xls:
+        return xls.sheet_names
 
 
 def get_excel_preview(excel_path, sheet_name, rows=5):
@@ -672,7 +672,8 @@ def get_excel_preview(excel_path, sheet_name, rows=5):
     每行附加 _row_index (0-based)
     """
     engine = get_excel_engine(excel_path)
-    df = pd.read_excel(excel_path, sheet_name=sheet_name, engine=engine)
+    with pd.ExcelFile(excel_path, engine=engine) as xls:
+        df = pd.read_excel(xls, sheet_name=sheet_name)
     preview_df = df if rows <= 0 else df.head(rows)
     records = []
     for idx, row in preview_df.iterrows():
