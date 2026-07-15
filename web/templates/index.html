@@ -4,11 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>检验批批量生成平台</title>
-    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="/static/css/style.css?v=1">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='28' font-size='28'>⚡</text></svg>">
 </head>
 <body>
-    <!-- 顶部导航 -->
     <header class="header">
         <div class="header-inner">
             <div class="logo">
@@ -16,7 +15,7 @@
                 <span class="logo-text">检验批批量生成平台</span>
             </div>
             <div class="header-actions">
-                <button class="btn btn-outline btn-sm" onclick="cleanupAllFiles()" title="清空所有历史生成的文件">
+                <button class="btn btn-outline btn-sm" onclick="cleanupAllFiles()" title="清空所有历史文件">
                     🗑 一键清空
                 </button>
                 <button class="btn btn-ghost" onclick="showPresetManager()" title="预设管理">
@@ -28,13 +27,9 @@
         </div>
     </header>
 
-    <!-- 主内容区 -->
     <main class="main">
         <div class="container">
 
-            <!-- ============================================================ -->
-            <!--  第一步：文件上传 — 双列布局，各带文件清单 -->
-            <!-- ============================================================ -->
             <section class="card" id="section-upload">
                 <div class="card-header">
                     <div class="step-badge">1</div>
@@ -43,7 +38,6 @@
                 </div>
                 <div class="card-body">
                     <div class="upload-grid">
-                        <!-- Word 模板 -->
                         <div class="upload-panel">
                             <div class="upload-zone" id="dropzone-docx" data-type="docx">
                                 <div class="upload-icon">
@@ -66,7 +60,6 @@
                             </div>
                         </div>
 
-                        <!-- Excel 数据 -->
                         <div class="upload-panel">
                             <div class="upload-zone" id="dropzone-xlsx" data-type="xlsx">
                                 <div class="upload-icon">
@@ -92,9 +85,6 @@
                 </div>
             </section>
 
-            <!-- ============================================================ -->
-            <!--  第二步：任务配置 -->
-            <!-- ============================================================ -->
             <section class="card" id="section-config">
                 <div class="card-header">
                     <div class="step-badge">2</div>
@@ -106,12 +96,11 @@
                     </div>
                 </div>
                 <div class="card-body">
-                    <div class="task-list" id="taskList"><!-- 动态生成 --></div>
+                    <div class="task-list" id="taskList"></div>
                     <div class="task-empty" id="taskEmpty">
                         <p>还没有配置任务，点击「添加任务」开始</p>
                     </div>
 
-                    <!-- 全局设置 — 合并 -->
                     <div class="global-settings" id="globalSettings" style="display:none;">
                         <div class="settings-title-bar">
                             <h3>📦 文档合并设置</h3>
@@ -128,9 +117,6 @@
                 </div>
             </section>
 
-            <!-- ============================================================ -->
-            <!--  第三步：执行生成 -->
-            <!-- ============================================================ -->
             <section class="card" id="section-run">
                 <div class="card-header">
                     <div class="step-badge">3</div>
@@ -143,7 +129,6 @@
                             开始生成
                         </button>
 
-                        <!-- 进度条 -->
                         <div class="progress-container" id="progressContainer" style="display:none;">
                             <div class="progress-header">
                                 <span class="progress-title" id="progressTitle">生成中...</span>
@@ -155,22 +140,18 @@
                             <div class="progress-log" id="progressLog"></div>
                         </div>
 
-                        <!-- 结果摘要 -->
                         <div class="result-summary" id="resultSummary" style="display:none;"></div>
                     </div>
                 </div>
             </section>
 
-            <!-- ============================================================ -->
-            <!--  第四步：结果下载 -->
-            <!-- ============================================================ -->
             <section class="card" id="section-download" style="display:none;">
                 <div class="card-header">
                     <div class="step-badge">4</div>
                     <h2>结果下载</h2>
                     <span class="card-hint">点击文件名下载，或打包下载整个文件夹</span>
                     <div class="card-header-actions">
-                        <button class="btn btn-outline btn-sm" onclick="openOutputFolder()" title="在文件管理器中打开生成目录">
+                        <button class="btn btn-outline btn-sm" onclick="openOutputFolder()" title="在文件管理器中打开">
                             📂 打开文件夹
                         </button>
                         <button class="btn btn-outline btn-sm" onclick="cleanupCurrentSession()" title="清空本次生成的所有文件">
@@ -186,7 +167,6 @@
         </div>
     </main>
 
-    <!-- 预设管理弹窗 -->
     <div class="modal-overlay" id="presetModal" style="display:none;">
         <div class="modal">
             <div class="modal-header">
@@ -201,7 +181,6 @@
         </div>
     </div>
 
-    <!-- 通用弹窗（预设加载 / 数据预览 / 字段匹配 / 行选择） -->
     <div class="modal-overlay" id="loadPresetModal" style="display:none;">
         <div class="modal" id="loadPresetModalInner">
             <div class="modal-header">
@@ -214,6 +193,18 @@
         </div>
     </div>
 
-    <script src="/static/js/main.js?v=13"></script>
+    <div class="modal-overlay" id="templateWorkbenchModal" style="display:none;">
+        <div class="modal modal-wide">
+            <div class="modal-header">
+                <h3>📋 模板工作台</h3>
+                <button class="btn btn-ghost btn-icon" onclick="closeTemplateWorkbench()">&times;</button>
+            </div>
+            <div class="modal-body" id="templateWorkbenchBody">
+                <p class="text-muted">加载中...</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/main.js?v=1"></script>
 </body>
 </html>

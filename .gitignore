@@ -1,27 +1,33 @@
-# 运行时数据 —— 上传文件、生成结果、预设方案
-uploads/
-outputs/
-presets/*.json
-
 # Python
 __pycache__/
 *.pyc
 *.pyo
-.venv/
 venv/
+.venv/
+
+# PyInstaller
+build/
+dist/
+*.spec
+
+# 运行时数据
+data/uploads/
+data/outputs/
+data/presets/*.json
 
 # IDE
-.workbuddy/
-.vscode/
 .idea/
+.vscode/
+*.swp
+*.swo
+
+# WorkBuddy
+.workbuddy/
 
 # 系统
 .DS_Store
 Thumbs.db
-*.swp
-*.swo
 
-# 临时文件
-~$*.docx
-~$*.xlsx
-*.tmp
+# 日志
+*.log
+启动错误.log
