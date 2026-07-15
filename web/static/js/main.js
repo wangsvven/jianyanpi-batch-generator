@@ -224,7 +224,10 @@ function renderPanelFileList(type, files) {
                 <div class="file-name" title="${f.original_name}">${f.original_name}</div>
                 <div class="file-meta">${formatSize(f.size)}</div>
             </div>
-            <button class="file-del" onclick="deleteFile('${f.name}')" title="删除">&times;</button>
+            <div class="file-item-actions">
+                <button class="btn btn-xs btn-ghost" onclick="previewFile('${f.type}', '${f.name}', '${f.original_name}', '${f.path}')" title="预览内容" style="font-size:12px;padding:2px 6px;">👁</button>
+                <button class="file-del" onclick="deleteFile('${f.name}')" title="删除">&times;</button>
+            </div>
         </div>
     `).join('') + `<div style="margin-top:8px;text-align:right;"><button class="btn btn-xs btn-ghost" onclick="deleteAllFiles('${type}')" style="color:var(--danger);font-size:11px;">🗑 全部删除</button></div>`;
 }
@@ -232,13 +235,48 @@ function renderPanelFileList(type, files) {
 async function deleteFile(filename) {
     if (!confirm('确定删除？')) return;
     try {
-        await fetch('/api/files/delete', {
+        const res = await fetch('/api/files/delete', {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ session_id: STATE.sessionId, filename })
         });
-        await refreshFiles();
-        showToast('文件已删除', 'info');
-    } catch (e) { showToast('删除失败', 'error'); }
+        if (!res.ok) { showToast('删除失败', 'error'); return; }
+
+        // 本地移除文件，不触发全量刷新
+        const deletedFile = STATE.files.find(f => f.name === filename);
+        const deletedPath = deletedFile ? deletedFile.path : null;
+        STATE.files = STATE.files.filter(f => f.name !== filename);
+
+        // 清除任务中对该文件的引用
+        let tasksChanged = false;
+        if (deletedPath) {
+            STATE.tasks.forEach((task, i) => {
+                if (task.template_path === deletedPath) {
+                    task.template_path = '';
+                    delete STATE.templatePlaceholders[i];
+                    tasksChanged = true;
+                }
+                if (task.excel_path === deletedPath) {
+                    task.excel_path = '';
+                    task.sheet_names = [];
+                    task.sheet_name = '';
+                    task.filename_column = '';
+                    delete STATE.excelColumns[i];
+                    delete STATE.excelSheets[i];
+                    delete task.row_filter;
+                    delete task.row_filter_total;
+                    tasksChanged = true;
+                }
+            });
+        }
+
+        renderFileList();
+        if (tasksChanged) {
+            showToast('文件已删除，关联的任务配置已自动清除', 'info');
+            if (STATE.tasks.length > 0) renderTasks();
+        } else {
+            showToast('文件已删除', 'info');
+        }
+    } catch (e) { showToast('删除失败: ' + e.message, 'error'); }
 }
 
 // 批量删除某类型文件
@@ -247,17 +285,45 @@ async function deleteAllFiles(type) {
     if (files.length === 0) return;
     const typeLabel = type === 'word' ? 'Word 模板' : 'Excel 数据';
     if (!confirm(`确定删除全部 ${files.length} 个${typeLabel}文件？`)) return;
+
     let ok = 0, fail = 0;
+    const deletedPaths = new Set();
     for (const f of files) {
         try {
-            await fetch('/api/files/delete', {
+            const res = await fetch('/api/files/delete', {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ session_id: STATE.sessionId, filename: f.name })
             });
-            ok++;
+            if (res.ok) { ok++; deletedPaths.add(f.path); } else { fail++; }
         } catch (e) { fail++; }
     }
-    await refreshFiles();
+
+    // 本地移除已删文件
+    STATE.files = STATE.files.filter(f => !deletedPaths.has(f.path));
+
+    // 清除任务中引用
+    let tasksChanged = false;
+    STATE.tasks.forEach((task, i) => {
+        if (task.template_path && deletedPaths.has(task.template_path)) {
+            task.template_path = '';
+            delete STATE.templatePlaceholders[i];
+            tasksChanged = true;
+        }
+        if (task.excel_path && deletedPaths.has(task.excel_path)) {
+            task.excel_path = '';
+            task.sheet_names = [];
+            task.sheet_name = '';
+            task.filename_column = '';
+            delete STATE.excelSheets[i];
+            delete STATE.excelColumns[i];
+            delete task.row_filter;
+            delete task.row_filter_total;
+            tasksChanged = true;
+        }
+    });
+
+    renderFileList();
+    if (tasksChanged && STATE.tasks.length > 0) renderTasks();
     showToast(`已删除 ${ok} 个文件${fail > 0 ? `，${fail} 个失败` : ''}`, fail > 0 ? 'error' : 'success');
 }
 
@@ -267,6 +333,178 @@ function formatSize(bytes) {
     let i = 0, size = bytes;
     while (size >= 1024 && i < units.length - 1) { size /= 1024; i++; }
     return size.toFixed(i === 0 ? 0 : 1) + ' ' + units[i];
+}
+
+// ============================================================
+//  文件预览 — Word / Excel 内容查看
+// ============================================================
+async function previewFile(fileType, fileName, originalName, filePath) {
+    const inner = document.getElementById('loadPresetModalInner');
+    inner.classList.add('modal-xwide');
+    document.querySelector('#loadPresetModal .modal-header h3').textContent = `👁 预览: ${originalName}`;
+    document.getElementById('loadPresetBody').innerHTML = '<p style="text-align:center;padding:40px;color:var(--text-muted);">正在读取文件内容...</p>';
+    document.getElementById('loadPresetModal').style.display = 'flex';
+
+    if (fileType === 'word') {
+        await previewDocx(filePath);
+    } else if (fileType === 'excel') {
+        await previewExcelFile(filePath);
+    }
+}
+
+async function previewDocx(filePath) {
+    try {
+        const res = await fetch('/api/preview/docx', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ path: filePath })
+        });
+        const data = await res.json();
+        if (data.error) {
+            document.getElementById('loadPresetBody').innerHTML = `<p style="color:var(--danger);text-align:center;padding:20px;">${data.error}</p><div style="display:flex;justify-content:flex-end;gap:8px;"><button class="btn btn-outline" onclick="closeLoadPreset()">关闭</button></div>`;
+            return;
+        }
+
+        const paras = data.paragraphs || [];
+        const tables = data.tables || [];
+        let html = `<div style="margin-bottom:12px;padding:8px 12px;background:var(--bg-card);border-radius:6px;font-size:12px;color:var(--text-muted);">
+            📄 共 ${data.total_paragraphs} 段文本 · ${data.total_tables} 个表格 · ${data.total_chars} 字符
+        </div>`;
+
+        // 渲染段落
+        if (paras.length > 0) {
+            html += '<div style="max-height:50vh;overflow-y:auto;border:1px solid var(--border);border-radius:6px;padding:12px 16px;background:var(--bg-card);">';
+            for (const p of paras) {
+                const isHeading = (p.style || '').toLowerCase().includes('heading') || (p.style || '').toLowerCase().includes('title');
+                if (isHeading) {
+                    html += `<p style="font-weight:700;font-size:14px;margin:12px 0 6px;color:var(--accent);">${escapeHtml(p.text)}</p>`;
+                } else {
+                    html += `<p style="margin:4px 0;line-height:1.8;">${escapeHtml(p.text)}</p>`;
+                }
+            }
+            html += '</div>';
+        }
+
+        // 渲染表格
+        if (tables.length > 0) {
+            for (let ti = 0; ti < tables.length; ti++) {
+                const table = tables[ti];
+                html += `<p style="margin:16px 0 6px;font-weight:600;font-size:13px;">📋 表格 ${ti + 1} (${table.length} 行 × ${table[0]?.length || 0} 列)</p>`;
+                html += '<div style="overflow-x:auto;border:1px solid var(--border);border-radius:6px;"><table class="preview-table" style="margin:0;">';
+                html += '<tbody>';
+                table.forEach((row, ri) => {
+                    const isHeader = ri === 0;
+                    html += `<tr${isHeader ? ' style="background:var(--bg-card);font-weight:600;"' : ''}>`;
+                    row.forEach(cell => {
+                        html += isHeader ? `<th>${escapeHtml(cell)}</th>` : `<td>${escapeHtml(cell)}</td>`;
+                    });
+                    html += '</tr>';
+                });
+                html += '</tbody></table></div>';
+            }
+        }
+
+        if (paras.length === 0 && tables.length === 0) {
+            html += '<p style="text-align:center;padding:30px;color:var(--text-muted);">文档内容为空</p>';
+        }
+
+        html += `<div style="margin-top:16px;display:flex;gap:8px;justify-content:flex-end;"><button class="btn btn-outline" onclick="closeLoadPreset()">关闭</button></div>`;
+        document.getElementById('loadPresetBody').innerHTML = html;
+    } catch (e) {
+        document.getElementById('loadPresetBody').innerHTML = `<p style="color:var(--danger);text-align:center;padding:20px;">预览失败: ${e.message}</p><div style="display:flex;justify-content:flex-end;gap:8px;"><button class="btn btn-outline" onclick="closeLoadPreset()">关闭</button></div>`;
+    }
+}
+
+async function previewExcelFile(filePath) {
+    try {
+        // 先获取 Sheet 列表
+        const sheetsRes = await fetch('/api/excel/sheets', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ path: filePath })
+        });
+        const sheetsData = await sheetsRes.json();
+        if (sheetsData.error) {
+            document.getElementById('loadPresetBody').innerHTML = `<p style="color:var(--danger);text-align:center;padding:20px;">${sheetsData.error}</p><div style="display:flex;justify-content:flex-end;gap:8px;"><button class="btn btn-outline" onclick="closeLoadPreset()">关闭</button></div>`;
+            return;
+        }
+        const sheets = sheetsData.sheets || [];
+        if (sheets.length === 0) {
+            document.getElementById('loadPresetBody').innerHTML = `<p style="text-align:center;padding:20px;color:var(--text-muted);">Excel 中没有工作表</p><div style="display:flex;justify-content:flex-end;gap:8px;"><button class="btn btn-outline" onclick="closeLoadPreset()">关闭</button></div>`;
+            return;
+        }
+
+        // 默认预览第一个 Sheet
+        window._excelPreviewState = { filePath, sheets, currentSheet: sheets[0] };
+        await renderExcelPreviewSheet(sheets[0]);
+    } catch (e) {
+        document.getElementById('loadPresetBody').innerHTML = `<p style="color:var(--danger);text-align:center;padding:20px;">预览失败: ${e.message}</p><div style="display:flex;justify-content:flex-end;gap:8px;"><button class="btn btn-outline" onclick="closeLoadPreset()">关闭</button></div>`;
+    }
+}
+
+async function renderExcelPreviewSheet(sheetName) {
+    const state = window._excelPreviewState;
+    if (!state) return;
+    state.currentSheet = sheetName;
+
+    document.getElementById('loadPresetBody').innerHTML = '<p style="text-align:center;padding:30px;color:var(--text-muted);">正在读取数据...</p>';
+
+    try {
+        const res = await fetch('/api/excel/preview', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ path: state.filePath, sheet_name: sheetName, rows: 50 })
+        });
+        const data = await res.json();
+        if (data.error) {
+            document.getElementById('loadPresetBody').innerHTML = `<p style="color:var(--danger);text-align:center;padding:20px;">${data.error}</p><div style="display:flex;justify-content:flex-end;gap:8px;"><button class="btn btn-outline" onclick="closeLoadPreset()">关闭</button></div>`;
+            return;
+        }
+
+        const cols = data.columns || [];
+        const rows = data.preview || [];
+        const totalRows = data.total_rows || 0;
+
+        // Sheet 切换按钮
+        let html = `<div style="margin-bottom:12px;display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+            <span style="font-size:12px;color:var(--text-muted);">工作表:</span>`;
+        state.sheets.forEach(s => {
+            const active = s === sheetName;
+            html += `<button class="btn btn-xs ${active ? 'btn-primary' : 'btn-outline'}" onclick="renderExcelPreviewSheet('${s}')" style="font-size:11px;padding:2px 10px;">${s}</button>`;
+        });
+        html += `</div>`;
+
+        // 统计信息
+        html += `<div style="margin-bottom:8px;font-size:12px;color:var(--text-muted);">📊 ${sheetName} — 共 ${totalRows} 行 · 显示前 ${rows.length} 行 · ${cols.length} 列</div>`;
+
+        // 数据表格
+        if (cols.length > 0 && rows.length > 0) {
+            html += '<div style="overflow:auto;max-height:50vh;border:1px solid var(--border);border-radius:6px;"><table class="preview-table" style="margin:0;"><thead><tr>';
+            html += '<th style="width:40px;text-align:center;color:var(--text-muted);">#</th>';
+            cols.forEach(c => { html += `<th>${escapeHtml(String(c))}</th>`; });
+            html += '</tr></thead><tbody>';
+            rows.forEach(r => {
+                html += `<tr><td style="text-align:center;color:var(--text-muted);font-size:11px;">${(r._row_index ?? 0) + 1}</td>`;
+                cols.forEach(c => {
+                    const val = r[c];
+                    html += `<td>${val !== undefined && val !== null ? escapeHtml(String(val).substring(0, 100)) : ''}</td>`;
+                });
+                html += '</tr>';
+            });
+            html += '</tbody></table></div>';
+        } else {
+            html += '<p style="text-align:center;padding:30px;color:var(--text-muted);">此工作表没有数据</p>';
+        }
+
+        html += `<div style="margin-top:16px;display:flex;gap:8px;justify-content:flex-end;"><button class="btn btn-outline" onclick="closeLoadPreset()">关闭</button></div>`;
+        document.getElementById('loadPresetBody').innerHTML = html;
+    } catch (e) {
+        document.getElementById('loadPresetBody').innerHTML = `<p style="color:var(--danger);text-align:center;padding:20px;">读取失败: ${e.message}</p><div style="display:flex;justify-content:flex-end;gap:8px;"><button class="btn btn-outline" onclick="closeLoadPreset()">关闭</button></div>`;
+    }
+}
+
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
 }
 
 // ============================================================
@@ -1135,6 +1373,7 @@ function closeLoadPreset() {
     inner.classList.remove('modal-xwide');
     document.querySelector('#loadPresetModal .modal-header h3').textContent = '加载预设方案';
     window._rowSelectorData = null;
+    window._excelPreviewState = null;
 }
 
 async function loadPresetOptions() {

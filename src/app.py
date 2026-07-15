@@ -324,6 +324,52 @@ def template_placeholders():
         return jsonify({'error': str(e)}), 500
 
 
+@app.route('/api/preview/docx', methods=['POST'])
+def preview_docx():
+    """提取 Word 文档文本内容用于预览（段落 + 表格）"""
+    from docx import Document as DocxDocument
+
+    data = request.get_json()
+    docx_path = data.get('path', '')
+
+    if not docx_path or not Path(docx_path).exists():
+        return jsonify({'error': '文件不存在'}), 404
+
+    if not is_path_safe(docx_path, [UPLOAD_DIR, OUTPUT_DIR]):
+        return jsonify({'error': '非法路径'}), 403
+
+    try:
+        doc = DocxDocument(str(docx_path))
+        paragraphs = []
+        for para in doc.paragraphs:
+            text = para.text.strip()
+            if text:
+                style = para.style.name if para.style else ''
+                paragraphs.append({'text': text, 'style': style})
+
+        tables = []
+        for table in doc.tables:
+            rows_data = []
+            for row in table.rows:
+                cells = [cell.text.strip() for cell in row.cells]
+                rows_data.append(cells)
+            if rows_data:
+                tables.append(rows_data)
+
+        # 统计信息
+        total_chars = sum(len(p['text']) for p in paragraphs) + sum(sum(len(c) for c in row) for t in tables for row in t)
+
+        return jsonify({
+            'paragraphs': paragraphs,
+            'tables': tables,
+            'total_paragraphs': len(paragraphs),
+            'total_tables': len(tables),
+            'total_chars': total_chars
+        })
+    except Exception as e:
+        return jsonify({'error': f'读取文档失败: {e}'}), 500
+
+
 @app.route('/api/template/export-excel', methods=['POST'])
 def export_excel_template():
     """根据 Word 模板占位符生成 Excel 数据模板"""
