@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>检验批批量生成平台</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='28' font-size='28'>⚡</text></svg>">
+</head>
+<body>
+    <!-- 顶部导航 -->
+    <header class="header">
+        <div class="header-inner">
+            <div class="logo">
+                <span class="logo-icon">⚡</span>
+                <span class="logo-text">检验批批量生成平台</span>
+            </div>
+            <div class="header-actions">
+                <button class="btn btn-ghost" onclick="showPresetManager()" title="预设管理">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+                    预设方案
+                </button>
+                <span class="header-info" id="serverInfo">加载中...</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- 主内容区 -->
+    <main class="main">
+        <div class="container">
+
+            <!-- 第一步：文件上传 -->
+            <section class="card" id="section-upload">
+                <div class="card-header">
+                    <div class="step-badge">1</div>
+                    <h2>上传文件</h2>
+                    <span class="card-hint">上传 Word 模板和 Excel 数据文件</span>
+                </div>
+                <div class="card-body">
+                    <div class="upload-grid">
+                        <!-- Word 模板上传 -->
+                        <div class="upload-zone" id="dropzone-docx" data-type="docx">
+                            <div class="upload-icon">
+                                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                    <polyline points="14 2 14 8 20 8"/>
+                                    <line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
+                                </svg>
+                            </div>
+                            <p class="upload-title">Word 模板</p>
+                            <p class="upload-desc">拖拽 .docx 文件到此处，或点击选择</p>
+                            <input type="file" accept=".docx" class="upload-input" id="input-docx" multiple>
+                        </div>
+
+                        <!-- Excel 数据上传 -->
+                        <div class="upload-zone" id="dropzone-xlsx" data-type="xlsx">
+                            <div class="upload-icon">
+                                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                                    <line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/>
+                                    <line x1="9" y1="3" x2="9" y2="21"/><line x1="15" y1="3" x2="15" y2="21"/>
+                                </svg>
+                            </div>
+                            <p class="upload-title">Excel 数据</p>
+                            <p class="upload-desc">拖拽 .xlsx / .xls 文件到此处，或点击选择</p>
+                            <input type="file" accept=".xlsx,.xls" class="upload-input" id="input-xlsx" multiple>
+                        </div>
+                    </div>
+
+                    <!-- 已上传文件列表 -->
+                    <div class="file-list" id="fileList" style="display:none;">
+                        <h3 class="file-list-title">已上传文件</h3>
+                        <div class="file-list-grid" id="fileListGrid"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 第二步：任务配置 -->
+            <section class="card" id="section-config">
+                <div class="card-header">
+                    <div class="step-badge">2</div>
+                    <h2>任务配置</h2>
+                    <span class="card-hint">配置模板与数据的对应关系和生成参数</span>
+                    <div class="card-header-actions">
+                        <button class="btn btn-sm btn-outline" onclick="addTaskRow()">+ 添加任务</button>
+                        <button class="btn btn-sm btn-outline" onclick="loadPresetPrompt()">📋 加载预设</button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="task-list" id="taskList">
+                        <!-- 动态生成任务配置行 -->
+                    </div>
+                    <div class="task-empty" id="taskEmpty">
+                        <p>还没有配置任务，点击「添加任务」开始</p>
+                    </div>
+
+                    <!-- 全局设置 -->
+                    <div class="global-settings" id="globalSettings" style="display:none;">
+                        <h3>合并设置</h3>
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="enableMerge" onchange="toggleMergeSettings()">
+                            <span>生成后自动合并 Word 文档</span>
+                        </label>
+                        <div class="merge-settings" id="mergeSettings" style="display:none;">
+                            <div class="merge-list" id="mergeList"></div>
+                            <button class="btn btn-sm btn-outline" onclick="addMergeRow()" style="margin-top:8px;">+ 添加合并任务</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 第三步：运行 -->
+            <section class="card" id="section-run">
+                <div class="card-header">
+                    <div class="step-badge">3</div>
+                    <h2>执行生成</h2>
+                </div>
+                <div class="card-body">
+                    <div class="run-area">
+                        <button class="btn btn-primary btn-lg btn-run" id="btnRun" onclick="startGenerate()">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg>
+                            开始生成
+                        </button>
+
+                        <!-- 进度条 -->
+                        <div class="progress-container" id="progressContainer" style="display:none;">
+                            <div class="progress-header">
+                                <span class="progress-title" id="progressTitle">生成中...</span>
+                                <span class="progress-text" id="progressText">0 / 0</span>
+                            </div>
+                            <div class="progress-bar">
+                                <div class="progress-fill" id="progressFill"></div>
+                            </div>
+                            <div class="progress-log" id="progressLog"></div>
+                        </div>
+
+                        <!-- 结果摘要 -->
+                        <div class="result-summary" id="resultSummary" style="display:none;"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 第四步：结果下载 -->
+            <section class="card" id="section-download" style="display:none;">
+                <div class="card-header">
+                    <div class="step-badge">4</div>
+                    <h2>结果下载</h2>
+                    <span class="card-hint">点击文件名下载，或打包下载整个文件夹</span>
+                </div>
+                <div class="card-body">
+                    <div class="output-tree" id="outputTree"></div>
+                </div>
+            </section>
+
+        </div>
+    </main>
+
+    <!-- 预设管理弹窗 -->
+    <div class="modal-overlay" id="presetModal" style="display:none;">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>预设方案管理</h3>
+                <button class="btn btn-ghost btn-icon" onclick="closePresetManager()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="preset-list" id="presetList">
+                    <p class="text-muted">暂无保存的预设方案</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 通用弹窗（预设加载 / 数据预览 / 字段匹配） -->
+    <div class="modal-overlay" id="loadPresetModal" style="display:none;">
+        <div class="modal" id="loadPresetModalInner">
+            <div class="modal-header">
+                <h3>加载预设方案</h3>
+                <button class="btn btn-ghost btn-icon" onclick="closeLoadPreset()">&times;</button>
+            </div>
+            <div class="modal-body" id="loadPresetBody">
+                <p class="text-muted">暂无保存的预设方案</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/main.js?v=3"></script>
+</body>
+</html>

@@ -1,0 +1,27 @@
+# 运行时数据 —— 上传文件、生成结果、预设方案
+uploads/
+outputs/
+presets/*.json
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# IDE
+.workbuddy/
+.vscode/
+.idea/
+
+# 系统
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+
+# 临时文件
+~$*.docx
+~$*.xlsx
+*.tmp
