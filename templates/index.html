@@ -16,6 +16,9 @@
                 <span class="logo-text">检验批批量生成平台</span>
             </div>
             <div class="header-actions">
+                <button class="btn btn-outline btn-sm" onclick="cleanupAllFiles()" title="清空所有历史生成的文件">
+                    🗑 一键清空
+                </button>
                 <button class="btn btn-ghost" onclick="showPresetManager()" title="预设管理">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
                     预设方案
@@ -29,53 +32,69 @@
     <main class="main">
         <div class="container">
 
-            <!-- 第一步：文件上传 -->
+            <!-- ============================================================ -->
+            <!--  第一步：文件上传 — 双列布局，各带文件清单 -->
+            <!-- ============================================================ -->
             <section class="card" id="section-upload">
                 <div class="card-header">
                     <div class="step-badge">1</div>
                     <h2>上传文件</h2>
-                    <span class="card-hint">上传 Word 模板和 Excel 数据文件</span>
+                    <span class="card-hint">上传 Word 模板和 Excel 数据文件，支持拖拽</span>
                 </div>
                 <div class="card-body">
                     <div class="upload-grid">
-                        <!-- Word 模板上传 -->
-                        <div class="upload-zone" id="dropzone-docx" data-type="docx">
-                            <div class="upload-icon">
-                                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                                    <polyline points="14 2 14 8 20 8"/>
-                                    <line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
-                                </svg>
+                        <!-- Word 模板 -->
+                        <div class="upload-panel">
+                            <div class="upload-zone" id="dropzone-docx" data-type="docx">
+                                <div class="upload-icon">
+                                    <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                        <polyline points="14 2 14 8 20 8"/>
+                                        <line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
+                                    </svg>
+                                </div>
+                                <p class="upload-title">Word 模板</p>
+                                <p class="upload-desc">拖拽 .docx 文件到此处，或点击选择</p>
+                                <input type="file" accept=".docx" class="upload-input" id="input-docx" multiple>
                             </div>
-                            <p class="upload-title">Word 模板</p>
-                            <p class="upload-desc">拖拽 .docx 文件到此处，或点击选择</p>
-                            <input type="file" accept=".docx" class="upload-input" id="input-docx" multiple>
+                            <div class="panel-file-list" id="wordFileList" style="display:none;">
+                                <div class="panel-file-header">
+                                    <span>📄 模板文件</span>
+                                    <span class="panel-file-count" id="wordFileCount">0</span>
+                                </div>
+                                <div class="panel-file-items" id="wordFileItems"></div>
+                            </div>
                         </div>
 
-                        <!-- Excel 数据上传 -->
-                        <div class="upload-zone" id="dropzone-xlsx" data-type="xlsx">
-                            <div class="upload-icon">
-                                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-                                    <line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/>
-                                    <line x1="9" y1="3" x2="9" y2="21"/><line x1="15" y1="3" x2="15" y2="21"/>
-                                </svg>
+                        <!-- Excel 数据 -->
+                        <div class="upload-panel">
+                            <div class="upload-zone" id="dropzone-xlsx" data-type="xlsx">
+                                <div class="upload-icon">
+                                    <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                                        <line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/>
+                                        <line x1="9" y1="3" x2="9" y2="21"/><line x1="15" y1="3" x2="15" y2="21"/>
+                                    </svg>
+                                </div>
+                                <p class="upload-title">Excel 数据</p>
+                                <p class="upload-desc">拖拽 .xlsx / .xls 文件到此处，或点击选择</p>
+                                <input type="file" accept=".xlsx,.xls" class="upload-input" id="input-xlsx" multiple>
                             </div>
-                            <p class="upload-title">Excel 数据</p>
-                            <p class="upload-desc">拖拽 .xlsx / .xls 文件到此处，或点击选择</p>
-                            <input type="file" accept=".xlsx,.xls" class="upload-input" id="input-xlsx" multiple>
+                            <div class="panel-file-list" id="excelFileList" style="display:none;">
+                                <div class="panel-file-header">
+                                    <span>📊 数据文件</span>
+                                    <span class="panel-file-count" id="excelFileCount">0</span>
+                                </div>
+                                <div class="panel-file-items" id="excelFileItems"></div>
+                            </div>
                         </div>
-                    </div>
-
-                    <!-- 已上传文件列表 -->
-                    <div class="file-list" id="fileList" style="display:none;">
-                        <h3 class="file-list-title">已上传文件</h3>
-                        <div class="file-list-grid" id="fileListGrid"></div>
                     </div>
                 </div>
             </section>
 
-            <!-- 第二步：任务配置 -->
+            <!-- ============================================================ -->
+            <!--  第二步：任务配置 -->
+            <!-- ============================================================ -->
             <section class="card" id="section-config">
                 <div class="card-header">
                     <div class="step-badge">2</div>
@@ -87,16 +106,16 @@
                     </div>
                 </div>
                 <div class="card-body">
-                    <div class="task-list" id="taskList">
-                        <!-- 动态生成任务配置行 -->
-                    </div>
+                    <div class="task-list" id="taskList"><!-- 动态生成 --></div>
                     <div class="task-empty" id="taskEmpty">
                         <p>还没有配置任务，点击「添加任务」开始</p>
                     </div>
 
-                    <!-- 全局设置 -->
+                    <!-- 全局设置 — 合并 -->
                     <div class="global-settings" id="globalSettings" style="display:none;">
-                        <h3>合并设置</h3>
+                        <div class="settings-title-bar">
+                            <h3>📦 文档合并设置</h3>
+                        </div>
                         <label class="checkbox-label">
                             <input type="checkbox" id="enableMerge" onchange="toggleMergeSettings()">
                             <span>生成后自动合并 Word 文档</span>
@@ -109,7 +128,9 @@
                 </div>
             </section>
 
-            <!-- 第三步：运行 -->
+            <!-- ============================================================ -->
+            <!--  第三步：执行生成 -->
+            <!-- ============================================================ -->
             <section class="card" id="section-run">
                 <div class="card-header">
                     <div class="step-badge">3</div>
@@ -140,12 +161,22 @@
                 </div>
             </section>
 
-            <!-- 第四步：结果下载 -->
+            <!-- ============================================================ -->
+            <!--  第四步：结果下载 -->
+            <!-- ============================================================ -->
             <section class="card" id="section-download" style="display:none;">
                 <div class="card-header">
                     <div class="step-badge">4</div>
                     <h2>结果下载</h2>
                     <span class="card-hint">点击文件名下载，或打包下载整个文件夹</span>
+                    <div class="card-header-actions">
+                        <button class="btn btn-outline btn-sm" onclick="openOutputFolder()" title="在文件管理器中打开生成目录">
+                            📂 打开文件夹
+                        </button>
+                        <button class="btn btn-outline btn-sm" onclick="cleanupCurrentSession()" title="清空本次生成的所有文件">
+                            🗑 清空当前
+                        </button>
+                    </div>
                 </div>
                 <div class="card-body">
                     <div class="output-tree" id="outputTree"></div>
@@ -170,7 +201,7 @@
         </div>
     </div>
 
-    <!-- 通用弹窗（预设加载 / 数据预览 / 字段匹配） -->
+    <!-- 通用弹窗（预设加载 / 数据预览 / 字段匹配 / 行选择） -->
     <div class="modal-overlay" id="loadPresetModal" style="display:none;">
         <div class="modal" id="loadPresetModalInner">
             <div class="modal-header">
@@ -183,6 +214,6 @@
         </div>
     </div>
 
-    <script src="/static/js/main.js?v=3"></script>
+    <script src="/static/js/main.js?v=13"></script>
 </body>
 </html>

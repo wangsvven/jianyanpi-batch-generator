@@ -9,7 +9,7 @@
 
  架构
    app.py   — Flask 路由层（文件上传、任务调度、下载、预设管理）
-   engine.py — 核心生成引擎（模板填充、多任务编排、文档合并）
+   engine.py — 核心生成引擎（模板填充、多任务编排、文档合并，3种合并排序模式）
    前端      — 原生 HTML/CSS/JS，位于 templates/ 和 static/
 
  核心 API 路由
@@ -54,6 +54,7 @@ from engine import (
     generate_single_task,
     generate_tasks,
     merge_documents,
+    preview_merge_order,
     get_excel_sheets,
     get_excel_preview,
     get_excel_engine,
@@ -339,6 +340,7 @@ def run_generate():
     session_id = data.get('session_id', 'default')
     tasks_config = data.get('tasks', [])
     merge_config = data.get('merge_tasks', [])
+    print(f"[DEBUG] 收到请求: tasks={len(tasks_config)}, merge_tasks={len(merge_config)}, merge_config={merge_config}")
 
     if not tasks_config:
         return jsonify({'error': '没有配置任何任务'}), 400
@@ -375,25 +377,64 @@ def run_generate():
             # 执行合并任务
             merge_results = []
             if merge_config:
-                for mc in merge_config:
-                    try:
-                        input_dir = output_dir / mc.get('input_subdir', '')
-                        output_file = output_dir / mc.get('output_file', 'merged.docx')
-                        sort_mode = mc.get('sort_mode', 3)
-                        date_kw = mc.get('date_sort_keyword', '')
-                        count = merge_documents(str(input_dir), str(output_file), sort_mode, date_kw)
+                print(f"[合并] 共有 {len(merge_config)} 个合并任务待执行")
+                for i, mc in enumerate(merge_config):
+                    print(f"[合并] --- 处理合并任务 #{i+1}: {mc} ---")
+                    subdir = (mc.get('input_subdir') or '').strip()
+                    # '__root__' 表示合并根目录（无子目录的任务）
+                    is_root = (subdir == '__root__')
+                    if not subdir:
+                        print(f"[合并跳过] 未指定输入目录，跳过此合并任务")
                         merge_results.append({
-                            'input_subdir': mc.get('input_subdir', ''),
+                            'input_subdir': '',
+                            'error': '未指定输入目录',
+                            'status': 'error'
+                        })
+                        continue
+                    output_name = (mc.get('output_file') or '').strip() or '合并文档.docx'
+                    sort_mode = mc.get('sort_mode', 3)
+                    date_kw = mc.get('date_sort_keyword', '')
+                    input_dir = output_dir if is_root else output_dir / subdir
+                    print(f"[合并] output_dir={output_dir}, subdir={subdir}, input_dir={input_dir}, exists={input_dir.exists()}")
+                    if not input_dir.exists():
+                        # 列出 output_dir 的内容帮助排查
+                        try:
+                            contents = list(output_dir.glob('*'))
+                            print(f"[合并] output_dir 内容: {[str(c.name) for c in contents]}")
+                        except:
+                            pass
+                        print(f"[合并跳过] 目录不存在: {input_dir}")
+                        merge_results.append({
+                            'input_subdir': subdir,
+                            'error': f'目录不存在: {subdir}（先生成文档后再合并）',
+                            'status': 'error'
+                        })
+                        continue
+                    output_file = output_dir / output_name
+                    try:
+                        # 列出输入目录中的文件
+                        docx_files = list(input_dir.glob('*.docx'))
+                        print(f"[合并] 输入目录 {subdir} 中有 {len(docx_files)} 个 docx 文件: {[f.name for f in docx_files]}")
+                        print(f"[合并] 开始合并: {subdir} -> {output_name} (sort_mode={sort_mode})")
+                        count = merge_documents(str(input_dir), str(output_file), sort_mode, date_kw)
+                        print(f"[合并] 完成: {count} 份文档已合并到 {output_name}")
+                        merge_results.append({
+                            'input_subdir': subdir,
                             'output_file': str(output_file),
                             'count': count,
                             'status': 'success'
                         })
                     except Exception as e:
+                        import traceback
+                        print(f"[合并错误] {subdir}: {e}")
+                        traceback.print_exc()
                         merge_results.append({
-                            'input_subdir': mc.get('input_subdir', ''),
+                            'input_subdir': subdir,
                             'error': str(e),
                             'status': 'error'
                         })
+            else:
+                print(f"[合并] 没有合并任务（merge_config 为空）")
 
             result['merge_results'] = merge_results
 
@@ -418,6 +459,40 @@ def get_progress(task_id):
     if not task:
         return jsonify({'error': '任务不存在'}), 404
     return jsonify(task)
+
+
+# ============================================================
+#  合并排序预览（可视化编辑辅助）
+# ============================================================
+
+@app.route('/api/merge/preview', methods=['POST'])
+def merge_preview():
+    """
+    预览指定目录下文件的合并排序顺序
+    
+    参数（JSON）:
+        session_id:        会话 ID
+        input_subdir:      输入子目录（相对于 outputs/<session_id>/）
+        sort_mode:         排序模式 (1/2/3)
+        date_sort_keyword: 日期关键词（mode=2 时使用）
+    """
+    data = request.get_json() or {}
+    session_id = data.get('session_id', '')
+    input_subdir = data.get('input_subdir', '')
+    sort_mode = data.get('sort_mode', 3)
+    date_sort_keyword = data.get('date_sort_keyword', '')
+
+    if not session_id or not input_subdir:
+        return jsonify({'error': '缺少 session_id 或 input_subdir 参数'}), 400
+
+    is_root = (input_subdir == '__root__')
+    input_dir = OUTPUT_DIR / session_id if is_root else OUTPUT_DIR / session_id / input_subdir
+
+    try:
+        result = preview_merge_order(str(input_dir), sort_mode, date_sort_keyword)
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({'error': str(e), 'total': 0, 'files': []}), 500
 
 
 # ============================================================
@@ -587,6 +662,89 @@ def delete_preset(preset_id):
 
 
 # ============================================================
+#  文件清理
+# ============================================================
+
+def _safe_rmdir(dir_path):
+    """安全删除目录及其所有内容（仅限 uploads/outputs 子目录）"""
+    import shutil
+    p = Path(dir_path)
+    # 安全检查：只允许删除 uploads/ 和 outputs/ 下的子目录
+    allowed_parents = (str(UPLOAD_DIR.resolve()), str(OUTPUT_DIR.resolve()))
+    if str(p.parent.resolve()) not in allowed_parents:
+        return 0, False
+    count = sum(1 for _ in p.rglob('*') if _.is_file())
+    shutil.rmtree(str(p), ignore_errors=True)
+    return count, True
+
+
+@app.route('/api/cleanup/session', methods=['POST'])
+def cleanup_session():
+    """清空当前 session 的 uploads 和 outputs"""
+    data = request.get_json() or {}
+    session_id = data.get('session_id', '')
+    if not session_id:
+        return jsonify({'error': '缺少 session_id'}), 400
+
+    up_dir = UPLOAD_DIR / session_id
+    out_dir = OUTPUT_DIR / session_id
+
+    up_count, _ = _safe_rmdir(up_dir)
+    out_count, _ = _safe_rmdir(out_dir)
+
+    total = up_count + out_count
+    print(f"[清理] session={session_id}，已删除 {total} 个文件")
+    return jsonify({'status': 'ok', 'deleted_files': total})
+
+
+@app.route('/api/cleanup/all', methods=['POST'])
+def cleanup_all():
+    """清空所有历史 session 的 uploads 和 outputs"""
+    import shutil
+
+    def count_and_remove(base_dir):
+        total = 0
+        if base_dir.exists():
+            for child in list(base_dir.iterdir()):
+                if child.is_dir():
+                    total += sum(1 for _ in child.rglob('*') if _.is_file())
+            shutil.rmtree(str(base_dir), ignore_errors=True)
+            base_dir.mkdir(parents=True, exist_ok=True)
+        return total
+
+    up_count = count_and_remove(UPLOAD_DIR)
+    out_count = count_and_remove(OUTPUT_DIR)
+    total = up_count + out_count
+
+    print(f"[清理] 全部清空，已删除 {total} 个文件（uploads: {up_count}, outputs: {out_count}）")
+    return jsonify({'status': 'ok', 'deleted_files': total})
+
+
+@app.route('/api/open-folder', methods=['POST'])
+def open_folder():
+    """在文件资源管理器中打开指定目录"""
+    data = request.get_json() or {}
+    folder_type = data.get('type', 'outputs')  # 'outputs' 或 'uploads'
+    session_id = data.get('session_id', '')
+    subdir = data.get('subdir', '')
+
+    if folder_type == 'outputs':
+        base = OUTPUT_DIR / session_id
+    else:
+        base = UPLOAD_DIR / session_id
+
+    if subdir:
+        base = base / subdir
+
+    if not base.exists():
+        return jsonify({'error': '目录不存在，请先生成文件'}), 404
+
+    import subprocess
+    subprocess.Popen(['explorer', str(base.resolve())], shell=True)
+    return jsonify({'status': 'ok', 'path': str(base.resolve())})
+
+
+# ============================================================
 #  启动
 # ============================================================
 
@@ -597,7 +755,7 @@ if __name__ == '__main__':
     local_ip = socket.gethostbyname(hostname)
 
     print("=" * 60)
-    print("  检验批批量生成平台 v1.0")
+    print("  检验批批量生成平台 v2.0")
     print("=" * 60)
     print(f"  本机访问: http://127.0.0.1:5000")
     print(f"  局域网访问: http://{local_ip}:5000")
