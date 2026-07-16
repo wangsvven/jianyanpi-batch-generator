@@ -1,6 +1,6 @@
 /**
  * ================================================================================
- * 检验批批量生成平台 — 前端交互逻辑 v3.0
+ * 检验批批量生成平台 — 前端交互逻辑 v4.0
  * ================================================================================
  *
  * 工作流程（四步）:
@@ -12,6 +12,8 @@
  * 排序规则:
  *   生成 — 始终按 Excel 原始行顺序，文件名加 001_ 序号前缀
  *   合并 — 3 种模式 (1=编号+续号, 2=日期, 3=Excel原序)
+ *
+ * v4.0 新增: 深色模式 / 步骤进度条导航 / 全新设计系统
  * ================================================================================
  */
 
@@ -30,6 +32,55 @@ const STATE = {
 };
 
 // ============================================================
+//  深色模式
+// ============================================================
+function toggleTheme() {
+    const current = document.documentElement.getAttribute('data-theme');
+    const next = current === 'dark' ? 'light' : 'dark';
+    if (next === 'dark') {
+        document.documentElement.setAttribute('data-theme', 'dark');
+    } else {
+        document.documentElement.removeAttribute('data-theme');
+    }
+    localStorage.setItem('theme', next);
+}
+
+// ============================================================
+//  步骤进度条导航
+// ============================================================
+function scrollToSection(sectionId) {
+    const el = document.getElementById(sectionId);
+    if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+}
+
+function updateStepProgress() {
+    const sections = [
+        { id: 'section-upload', step: 1 },
+        { id: 'section-config', step: 2 },
+        { id: 'section-run', step: 3 },
+        { id: 'section-download', step: 4 }
+    ];
+    const scrollY = window.scrollY + 120;
+    let activeStep = 1;
+
+    for (const s of sections) {
+        const el = document.getElementById(s.id);
+        if (el && el.offsetParent !== null) {
+            const top = el.offsetTop;
+            if (scrollY >= top) activeStep = s.step;
+        }
+    }
+
+    document.querySelectorAll('.step-item').forEach(item => {
+        const step = parseInt(item.dataset.step);
+        item.classList.toggle('active', step === activeStep);
+        item.classList.toggle('completed', step < activeStep);
+    });
+}
+
+// ============================================================
 //  初始化
 // ============================================================
 document.addEventListener('DOMContentLoaded', async () => {
@@ -39,6 +90,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     refreshFiles();
     refreshPresets();
     showServerInfo();
+    // 滚动监听更新步骤进度条
+    window.addEventListener('scroll', updateStepProgress, { passive: true });
+    updateStepProgress();
 });
 
 async function initSession() {
@@ -225,7 +279,8 @@ function renderPanelFileList(type, files) {
                 <div class="file-meta">${formatSize(f.size)}</div>
             </div>
             <div class="file-item-actions">
-                <button class="btn btn-xs btn-ghost" onclick="previewFile('${f.type}', '${f.name}', '${f.original_name}', '${f.path}')" title="预览内容" style="font-size:12px;padding:2px 6px;">👁</button>
+                <button class="btn btn-xs btn-ghost" onclick="previewFile('${f.name}')" title="打开原文件" style="font-size:12px;padding:2px 6px;">👁</button>
+                <button class="btn btn-xs btn-ghost" onclick="refreshFile('${f.name}')" title="刷新文件内容（修改保存后重新读取）" style="font-size:12px;padding:2px 6px;">🔄</button>
                 <button class="file-del" onclick="deleteFile('${f.name}')" title="删除">&times;</button>
             </div>
         </div>
@@ -338,17 +393,114 @@ function formatSize(bytes) {
 // ============================================================
 //  文件预览 — Word / Excel 内容查看
 // ============================================================
-async function previewFile(fileType, fileName, originalName, filePath) {
-    const inner = document.getElementById('loadPresetModalInner');
-    inner.classList.add('modal-xwide');
-    document.querySelector('#loadPresetModal .modal-header h3').textContent = `👁 预览: ${originalName}`;
-    document.getElementById('loadPresetBody').innerHTML = '<p style="text-align:center;padding:40px;color:var(--text-muted);">正在读取文件内容...</p>';
-    document.getElementById('loadPresetModal').style.display = 'flex';
+async function previewFile(fileName) {
+    // 用系统默认程序直接打开原始文件（Word 用 Word，Excel 用 Excel）
+    const file = STATE.files.find(f => f.name === fileName);
+    if (!file) {
+        showToast('文件信息未找到，请刷新页面重试', 'error');
+        return;
+    }
+    try {
+        const res = await fetch('/api/open-file', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ path: file.path })
+        });
+        const data = await res.json();
+        if (data.status === 'ok') {
+            showToast(`已打开: ${file.original_name || fileName}`, 'success');
+        } else {
+            showToast(data.error || '打开失败', 'error');
+        }
+    } catch (e) {
+        showToast('打开文件失败: ' + e.message, 'error');
+    }
+}
 
-    if (fileType === 'word') {
-        await previewDocx(filePath);
-    } else if (fileType === 'excel') {
-        await previewExcelFile(filePath);
+// 刷新文件：重新读取修改保存后的内容，保留所有任务配置不丢失
+async function refreshFile(fileName) {
+    const file = STATE.files.find(f => f.name === fileName);
+    if (!file) {
+        showToast('文件信息未找到，请刷新页面重试', 'error');
+        return;
+    }
+    const filePath = file.path;
+    const fileType = file.type;
+    let refreshed = 0;
+
+    // 遍历所有任务，找到引用了该文件的任务并重新读取
+    for (let i = 0; i < STATE.tasks.length; i++) {
+        const task = STATE.tasks[i];
+
+        // Word 模板：重新提取占位符
+        if (fileType === 'word' && task.template_path === filePath) {
+            try {
+                const res = await fetch('/api/template/placeholders', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ path: filePath })
+                });
+                const data = await res.json();
+                if (data.placeholders) {
+                    STATE.templatePlaceholders[i] = data.placeholders;
+                    refreshed++;
+                }
+            } catch (e) { console.error('刷新模板占位符失败', e); }
+        }
+
+        // Excel 文件：重新读取 Sheet 列表和列名，保留用户已选 Sheet
+        if (fileType === 'excel' && task.excel_path === filePath) {
+            try {
+                // 重新读取 Sheet 列表
+                const sheetsRes = await fetch('/api/excel/sheets', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ path: filePath })
+                });
+                const sheetsData = await sheetsRes.json();
+                if (sheetsData.sheets) {
+                    STATE.excelSheets[i] = sheetsData.sheets;
+
+                    // 保留用户已选 Sheet，但如果已选 Sheet 不存在了则取第一个
+                    const oldSheets = task.sheet_names || [];
+                    const validSheets = oldSheets.filter(s => sheetsData.sheets.includes(s));
+                    if (validSheets.length === 0 && sheetsData.sheets.length > 0) {
+                        validSheets.push(sheetsData.sheets[0]);
+                    }
+                    task.sheet_names = validSheets;
+                    task.sheet_name = validSheets[0] || '';
+
+                    // 重新读取列名
+                    if (task.sheet_name) {
+                        const colRes = await fetch('/api/excel/preview', {
+                            method: 'POST', headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ path: filePath, sheet_name: task.sheet_name, rows: 1 })
+                        });
+                        const colData = await colRes.json();
+                        if (colData.columns) {
+                            STATE.excelColumns[i] = colData.columns.map(String);
+                        }
+                    }
+                    refreshed++;
+                }
+            } catch (e) { console.error('刷新 Excel 失败', e); }
+        }
+    }
+
+    // 更新文件大小等元信息
+    try {
+        const filesRes = await fetch(`/api/files?session_id=${STATE.sessionId}`);
+        const filesData = await filesRes.json();
+        const updated = (filesData.files || []).find(f => f.name === fileName);
+        if (updated) {
+            const idx = STATE.files.findIndex(f => f.name === fileName);
+            if (idx >= 0) STATE.files[idx] = updated;
+        }
+    } catch (e) { /* 非关键，忽略 */ }
+
+    renderFileList();
+    if (refreshed > 0) {
+        renderTasks();
+        showToast(`已刷新「${file.original_name || fileName}」，${refreshed} 个任务的关联数据已更新`, 'success');
+    } else {
+        showToast(`文件「${file.original_name || fileName}」已刷新`, 'info');
     }
 }
 
@@ -1224,8 +1376,9 @@ async function refreshOutputs() {
 function renderOutputTree(files) {
     const section = document.getElementById('section-download');
     const tree = document.getElementById('outputTree');
-    if (!files || files.length === 0) { section.style.display = 'none'; return; }
+    if (!files || files.length === 0) { section.style.display = 'none'; updateStepProgress(); return; }
     section.style.display = 'block';
+    updateStepProgress();
 
     const zipAllBtn = `<div style="margin-bottom:12px;"><button class="btn btn-primary btn-sm" onclick="downloadAllZip()">📦 打包下载全部</button></div>`;
 

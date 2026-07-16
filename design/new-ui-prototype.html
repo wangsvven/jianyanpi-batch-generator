@@ -1,0 +1,1576 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>检验批批量生成平台 — 全新界面设计 v3.0</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='28' font-size='28'>⚡</text></svg>">
+<style>
+/* ============================================================
+   DESIGN TOKENS
+   ============================================================ */
+:root {
+  /* Primary — Teal (refined) */
+  --c-primary: #0D9488;
+  --c-primary-light: #14B8A6;
+  --c-primary-dark: #0F766E;
+  --c-primary-darker: #115E59;
+  --c-primary-bg: #F0FDFA;
+  --c-primary-border: #99F6E4;
+  --c-primary-shadow: rgba(13, 148, 136, 0.12);
+
+  /* Accent — Amber */
+  --c-accent: #F59E0B;
+  --c-accent-light: #FFFBEB;
+  --c-accent-border: #FDE68A;
+
+  /* Semantic */
+  --c-success: #10B981;
+  --c-success-bg: #ECFDF5;
+  --c-success-border: #A7F3D0;
+  --c-danger: #EF4444;
+  --c-danger-bg: #FEF2F2;
+  --c-danger-border: #FECACA;
+  --c-info: #3B82F6;
+  --c-info-bg: #EFF6FF;
+  --c-info-border: #BFDBFE;
+  --c-warning: #F59E0B;
+  --c-warning-bg: #FFFBEB;
+  --c-warning-border: #FDE68A;
+
+  /* Neutrals */
+  --c-bg-page: #F8FAFC;
+  --c-bg-card: #FFFFFF;
+  --c-bg-elevated: #F1F5F9;
+  --c-bg-hover: #F8FAFC;
+  --c-bg-input: #FFFFFF;
+
+  --c-border: #E2E8F0;
+  --c-border-light: #F1F5F9;
+  --c-border-strong: #CBD5E1;
+
+  --c-text-primary: #0F172A;
+  --c-text-secondary: #475569;
+  --c-text-muted: #94A3B8;
+  --c-text-inverse: #FFFFFF;
+
+  /* Shadows */
+  --shadow-xs: 0 1px 2px rgba(0,0,0,0.03);
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.02);
+  --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -2px rgba(0,0,0,0.03);
+  --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.06), 0 4px 6px -4px rgba(0,0,0,0.03);
+  --shadow-xl: 0 20px 25px -5px rgba(0,0,0,0.08), 0 8px 10px -6px rgba(0,0,0,0.04);
+
+  /* Radius */
+  --r-sm: 6px;
+  --r-md: 8px;
+  --r-lg: 12px;
+  --r-xl: 16px;
+  --r-full: 9999px;
+
+  /* Spacing scale (4px base) */
+  --s-1: 4px; --s-2: 8px; --s-3: 12px; --s-4: 16px;
+  --s-5: 20px; --s-6: 24px; --s-8: 32px; --s-10: 40px; --s-12: 48px;
+
+  /* Transitions */
+  --t-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --t-normal: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+  --t-slow: 400ms cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* Fonts */
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --font-mono: "SF Mono", "Cascadia Code", "Consolas", "Fira Code", monospace;
+}
+
+/* Dark theme */
+[data-theme="dark"] {
+  --c-primary-bg: rgba(13, 148, 136, 0.1);
+  --c-primary-border: rgba(20, 184, 166, 0.3);
+
+  --c-accent-light: rgba(245, 158, 11, 0.1);
+  --c-accent-border: rgba(245, 158, 11, 0.3);
+
+  --c-success-bg: rgba(16, 185, 129, 0.1);
+  --c-success-border: rgba(16, 185, 129, 0.3);
+  --c-danger-bg: rgba(239, 68, 68, 0.1);
+  --c-danger-border: rgba(239, 68, 68, 0.3);
+  --c-info-bg: rgba(59, 130, 246, 0.1);
+  --c-info-border: rgba(59, 130, 246, 0.3);
+  --c-warning-bg: rgba(245, 158, 11, 0.1);
+  --c-warning-border: rgba(245, 158, 11, 0.3);
+
+  --c-bg-page: #0F172A;
+  --c-bg-card: #1E293B;
+  --c-bg-elevated: #334155;
+  --c-bg-hover: #334155;
+  --c-bg-input: #1E293B;
+
+  --c-border: #334155;
+  --c-border-light: #1E293B;
+  --c-border-strong: #475569;
+
+  --c-text-primary: #F1F5F9;
+  --c-text-secondary: #94A3B8;
+  --c-text-muted: #64748B;
+
+  --shadow-xs: 0 1px 2px rgba(0,0,0,0.2);
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.3);
+  --shadow-md: 0 4px 6px rgba(0,0,0,0.3);
+  --shadow-lg: 0 10px 15px rgba(0,0,0,0.3);
+  --shadow-xl: 0 20px 25px rgba(0,0,0,0.4);
+}
+
+/* ============================================================
+   BASE
+   ============================================================ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: var(--font-sans);
+  background: var(--c-bg-page);
+  color: var(--c-text-primary);
+  line-height: 1.6;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  transition: background var(--t-normal), color var(--t-normal);
+}
+
+/* ============================================================
+   HEADER
+   ============================================================ */
+.header {
+  background: var(--c-bg-card);
+  border-bottom: 1px solid var(--c-border);
+  padding: 0 24px;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  transition: background var(--t-normal), border-color var(--t-normal);
+}
+.header-inner {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.logo { display: flex; align-items: center; gap: 12px; }
+.logo-mark {
+  width: 36px; height: 36px;
+  border-radius: var(--r-md);
+  background: var(--c-primary);
+  display: flex; align-items: center; justify-content: center;
+  color: white; font-size: 18px; font-weight: 700;
+  box-shadow: 0 2px 8px var(--c-primary-shadow);
+}
+.logo-text { font-size: 17px; font-weight: 700; color: var(--c-text-primary); letter-spacing: 0.3px; }
+.logo-version { font-size: 11px; color: var(--c-text-muted); font-weight: 400; margin-left: 4px; }
+.header-actions { display: flex; align-items: center; gap: 8px; }
+.header-status {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 12px; color: var(--c-text-secondary);
+  padding: 5px 12px; background: var(--c-bg-elevated);
+  border-radius: var(--r-full); font-family: var(--font-mono);
+}
+.header-status .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--c-success); box-shadow: 0 0 0 3px rgba(16,185,129,0.15); }
+
+/* Theme toggle */
+.theme-toggle {
+  width: 36px; height: 36px;
+  border-radius: var(--r-md);
+  border: 1px solid var(--c-border);
+  background: var(--c-bg-card);
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all var(--t-fast);
+  color: var(--c-text-secondary);
+}
+.theme-toggle:hover { background: var(--c-bg-hover); border-color: var(--c-border-strong); }
+.theme-toggle svg { width: 18px; height: 18px; }
+[data-theme="dark"] .theme-toggle .sun-icon { display: block; }
+[data-theme="dark"] .theme-toggle .moon-icon { display: none; }
+[data-theme="light"] .theme-toggle .sun-icon { display: none; }
+[data-theme="light"] .theme-toggle .moon-icon { display: block; }
+
+/* ============================================================
+   STEP PROGRESS BAR
+   ============================================================ */
+.step-bar {
+  background: var(--c-bg-card);
+  border-bottom: 1px solid var(--c-border);
+  padding: 16px 24px;
+  position: sticky;
+  top: 60px;
+  z-index: 90;
+  transition: background var(--t-normal), border-color var(--t-normal);
+}
+.step-bar-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 0;
+}
+.step-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  flex: 1;
+  transition: opacity var(--t-fast);
+}
+.step-item:not(:last-child)::after {
+  content: '';
+  flex: 1;
+  height: 2px;
+  background: var(--c-border);
+  margin: 0 16px;
+  border-radius: 1px;
+  transition: background var(--t-normal);
+}
+.step-item.completed:not(:last-child)::after { background: var(--c-primary); }
+.step-num {
+  width: 30px; height: 30px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 700;
+  flex-shrink: 0;
+  transition: all var(--t-normal);
+  background: var(--c-bg-elevated);
+  color: var(--c-text-muted);
+  border: 2px solid var(--c-border);
+}
+.step-item.active .step-num {
+  background: var(--c-primary);
+  color: white;
+  border-color: var(--c-primary);
+  box-shadow: 0 0 0 4px var(--c-primary-shadow);
+}
+.step-item.completed .step-num {
+  background: var(--c-primary);
+  color: white;
+  border-color: var(--c-primary);
+}
+.step-label { font-size: 13px; font-weight: 500; color: var(--c-text-muted); white-space: nowrap; }
+.step-item.active .step-label { color: var(--c-text-primary); font-weight: 600; }
+.step-item.completed .step-label { color: var(--c-text-secondary); }
+
+/* ============================================================
+   MAIN
+   ============================================================ */
+.main { max-width: 1200px; margin: 0 auto; padding: 28px 24px 48px; display: flex; flex-direction: column; gap: 24px; }
+
+/* ============================================================
+   CARD
+   ============================================================ */
+.card {
+  background: var(--c-bg-card);
+  border-radius: var(--r-xl);
+  border: 1px solid var(--c-border);
+  overflow: hidden;
+  transition: border-color var(--t-normal), box-shadow var(--t-normal);
+}
+.card-header {
+  padding: 20px 28px;
+  border-bottom: 1px solid var(--c-border-light);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  transition: border-color var(--t-normal);
+}
+.card-header h2 { font-size: 17px; font-weight: 700; color: var(--c-text-primary); }
+.card-hint { font-size: 13px; color: var(--c-text-muted); }
+.card-header-actions { margin-left: auto; display: flex; gap: 8px; }
+.card-body { padding: 24px 28px; }
+
+/* ============================================================
+   BUTTONS
+   ============================================================ */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 500;
+  padding: 8px 18px;
+  border-radius: var(--r-md);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all var(--t-fast);
+  text-decoration: none;
+  white-space: nowrap;
+  user-select: none;
+  line-height: 1.4;
+}
+.btn:active { transform: scale(0.97); }
+.btn-primary {
+  background: var(--c-primary);
+  color: white;
+}
+.btn-primary:hover { background: var(--c-primary-dark); box-shadow: 0 4px 12px var(--c-primary-shadow); transform: translateY(-1px); }
+.btn-outline {
+  background: var(--c-bg-card);
+  color: var(--c-text-secondary);
+  border-color: var(--c-border);
+}
+.btn-outline:hover { background: var(--c-bg-hover); border-color: var(--c-border-strong); color: var(--c-text-primary); }
+.btn-ghost { background: transparent; color: var(--c-text-secondary); }
+.btn-ghost:hover { background: var(--c-bg-hover); color: var(--c-text-primary); }
+.btn-danger { background: var(--c-danger); color: white; }
+.btn-danger:hover { background: #DC2626; }
+.btn-sm { padding: 6px 14px; font-size: 13px; border-radius: var(--r-sm); }
+.btn-xs { padding: 4px 10px; font-size: 12px; border-radius: var(--r-sm); }
+.btn-lg { padding: 14px 36px; font-size: 16px; font-weight: 700; border-radius: var(--r-lg); }
+.btn-icon { padding: 6px; border-radius: var(--r-sm); width: 32px; height: 32px; }
+.btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none !important; }
+.btn-run { min-width: 200px; letter-spacing: 1px; }
+
+/* ============================================================
+   UPLOAD ZONES
+   ============================================================ */
+.upload-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.upload-panel { display: flex; flex-direction: column; gap: 14px; }
+.upload-zone {
+  border: 2px dashed var(--c-border);
+  border-radius: var(--r-lg);
+  padding: 32px 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: all var(--t-normal);
+  background: var(--c-bg-elevated);
+  position: relative;
+  overflow: hidden;
+}
+.upload-zone:hover {
+  border-color: var(--c-primary);
+  background: var(--c-primary-bg);
+}
+.upload-zone.drag-over {
+  border-color: var(--c-primary);
+  background: var(--c-primary-bg);
+  box-shadow: 0 0 0 4px var(--c-primary-shadow);
+}
+.upload-icon {
+  width: 56px; height: 56px;
+  margin: 0 auto 12px;
+  border-radius: var(--r-lg);
+  display: flex; align-items: center; justify-content: center;
+  background: var(--c-bg-card);
+  border: 1px solid var(--c-border);
+  color: var(--c-text-muted);
+  transition: all var(--t-normal);
+}
+.upload-zone:hover .upload-icon {
+  color: var(--c-primary);
+  border-color: var(--c-primary-border);
+  background: var(--c-primary-bg);
+  transform: translateY(-2px);
+}
+.upload-icon svg { width: 28px; height: 28px; }
+.upload-title { font-size: 15px; font-weight: 600; color: var(--c-text-primary); margin-bottom: 4px; }
+.upload-desc { font-size: 12px; color: var(--c-text-muted); }
+
+/* File list panel */
+.file-panel {
+  background: var(--c-bg-card);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-lg);
+  overflow: hidden;
+}
+.file-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 16px;
+  background: var(--c-bg-elevated);
+  border-bottom: 1px solid var(--c-border-light);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--c-text-secondary);
+}
+.file-badge {
+  background: var(--c-primary);
+  color: white;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: var(--r-full);
+  min-width: 20px;
+  text-align: center;
+}
+.file-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--c-border-light);
+  transition: background var(--t-fast);
+  font-size: 13px;
+}
+.file-item:last-child { border-bottom: none; }
+.file-item:hover { background: var(--c-bg-hover); }
+.file-item-icon { width: 32px; height: 32px; border-radius: var(--r-sm); display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 14px; }
+.file-item-icon.word { background: var(--c-info-bg); color: var(--c-info); }
+.file-item-icon.excel { background: var(--c-success-bg); color: var(--c-success); }
+.file-item-info { flex: 1; min-width: 0; }
+.file-item-name { font-weight: 500; color: var(--c-text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.file-item-meta { font-size: 11px; color: var(--c-text-muted); margin-top: 1px; }
+.file-item-actions { display: flex; gap: 4px; flex-shrink: 0; }
+.file-action-btn {
+  width: 28px; height: 28px;
+  border: none; background: transparent;
+  color: var(--c-text-muted);
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all var(--t-fast);
+}
+.file-action-btn:hover { background: var(--c-bg-elevated); color: var(--c-text-primary); }
+.file-action-btn.danger:hover { background: var(--c-danger-bg); color: var(--c-danger); }
+.file-action-btn svg { width: 15px; height: 15px; }
+
+/* ============================================================
+   TASK CARDS
+   ============================================================ */
+.task-list { display: flex; flex-direction: column; gap: 16px; }
+.task-empty {
+  text-align: center;
+  padding: 48px 20px;
+}
+.task-empty-icon {
+  width: 64px; height: 64px;
+  margin: 0 auto 16px;
+  border-radius: var(--r-xl);
+  background: var(--c-bg-elevated);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--c-text-muted);
+}
+.task-empty-icon svg { width: 32px; height: 32px; }
+.task-empty p { font-size: 14px; color: var(--c-text-muted); margin-bottom: 16px; }
+
+.task-card {
+  background: var(--c-bg-card);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-lg);
+  overflow: hidden;
+  transition: border-color var(--t-fast), box-shadow var(--t-fast);
+}
+.task-card:hover { border-color: var(--c-border-strong); box-shadow: var(--shadow-sm); }
+.task-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  background: var(--c-bg-elevated);
+  border-bottom: 1px solid var(--c-border-light);
+}
+.task-card-title { display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 600; color: var(--c-text-primary); }
+.task-badge {
+  width: 26px; height: 26px;
+  border-radius: 50%;
+  background: var(--c-primary);
+  color: white;
+  font-size: 12px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.task-card-actions { display: flex; gap: 6px; }
+.task-card-body { padding: 20px; }
+.task-card-footer {
+  padding: 10px 20px;
+  border-top: 1px solid var(--c-border-light);
+  background: var(--c-bg-elevated);
+  font-size: 12px;
+  color: var(--c-text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Form */
+.form-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; }
+.form-group { display: flex; flex-direction: column; gap: 6px; }
+.form-group-full { grid-column: 1 / -1; }
+.form-label { font-size: 12px; font-weight: 600; color: var(--c-text-secondary); letter-spacing: 0.2px; }
+.form-label .req { color: var(--c-danger); }
+.form-input, .form-select {
+  font-family: var(--font-sans);
+  font-size: 13px;
+  padding: 9px 12px;
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-md);
+  background: var(--c-bg-input);
+  color: var(--c-text-primary);
+  transition: border-color var(--t-fast), box-shadow var(--t-fast);
+  outline: none;
+  width: 100%;
+}
+.form-input:focus, .form-select:focus {
+  border-color: var(--c-primary);
+  box-shadow: 0 0 0 3px var(--c-primary-shadow);
+}
+.form-input::placeholder { color: var(--c-text-muted); }
+
+/* Sheet checkboxes */
+.sheet-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 10px 12px;
+  background: var(--c-bg-elevated);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-md);
+  min-height: 42px;
+  align-items: center;
+}
+.sheet-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  background: var(--c-bg-card);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-full);
+  font-size: 12px;
+  cursor: pointer;
+  transition: all var(--t-fast);
+  user-select: none;
+  color: var(--c-text-secondary);
+}
+.sheet-chip:hover { border-color: var(--c-primary-border); background: var(--c-primary-bg); }
+.sheet-chip.active { background: var(--c-primary); color: white; border-color: var(--c-primary); }
+.sheet-chip input { display: none; }
+
+/* Placeholder section */
+.ph-section {
+  margin-top: 16px;
+  padding: 14px 16px;
+  background: var(--c-primary-bg);
+  border: 1px solid var(--c-primary-border);
+  border-radius: var(--r-md);
+}
+.ph-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.ph-title { font-size: 12px; font-weight: 600; color: var(--c-primary-dark); }
+.ph-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.ph-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 12px;
+  font-family: var(--font-mono);
+  padding: 3px 10px;
+  border-radius: var(--r-full);
+  border: 1px solid transparent;
+}
+.ph-tag.matched { background: var(--c-success-bg); color: var(--c-success); border-color: var(--c-success-border); }
+.ph-tag.missing { background: var(--c-warning-bg); color: #B45309; border-color: var(--c-warning-border); }
+
+/* Collapsible advanced settings */
+.adv-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 20px;
+  border-top: 1px solid var(--c-border-light);
+  background: var(--c-bg-elevated);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--c-text-secondary);
+  cursor: pointer;
+  transition: background var(--t-fast);
+}
+.adv-toggle:hover { background: var(--c-bg-hover); }
+.adv-toggle svg { width: 16px; height: 16px; transition: transform var(--t-normal); }
+.adv-toggle.open svg { transform: rotate(180deg); }
+.adv-content {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height var(--t-normal);
+}
+.adv-content.open { max-height: 500px; }
+.adv-inner { padding: 16px 20px; border-top: 1px solid var(--c-border-light); }
+
+/* ============================================================
+   MERGE SETTINGS
+   ============================================================ */
+.merge-section {
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 2px solid var(--c-border-light);
+}
+.merge-section h3 { font-size: 15px; font-weight: 700; color: var(--c-text-primary); margin-bottom: 14px; }
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--c-text-secondary);
+}
+.checkbox-label input[type="checkbox"] {
+  width: 18px; height: 18px;
+  accent-color: var(--c-primary);
+  cursor: pointer;
+}
+.merge-row {
+  background: var(--c-bg-card);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-md);
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* ============================================================
+   EXECUTE / PROGRESS
+   ============================================================ */
+.run-area { display: flex; flex-direction: column; align-items: center; gap: 24px; padding: 20px 0; }
+
+.progress-wrap { width: 100%; max-width: 600px; }
+.progress-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+.progress-title { font-size: 14px; font-weight: 600; color: var(--c-primary-dark); }
+.progress-pct { font-size: 14px; font-weight: 700; color: var(--c-primary); font-family: var(--font-mono); }
+.progress-track {
+  height: 10px;
+  background: var(--c-bg-elevated);
+  border-radius: var(--r-full);
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  background: var(--c-primary);
+  border-radius: var(--r-full);
+  transition: width 0.5s ease;
+  width: 0%;
+  position: relative;
+}
+.progress-fill::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+  animation: shimmer 1.8s infinite;
+}
+@keyframes shimmer { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
+
+.progress-log {
+  margin-top: 14px;
+  max-height: 180px;
+  overflow-y: auto;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--c-text-secondary);
+  background: var(--c-bg-elevated);
+  border-radius: var(--r-md);
+  padding: 12px 16px;
+  line-height: 1.8;
+}
+.log-success { color: var(--c-success); }
+.log-error { color: var(--c-danger); }
+
+/* Result summary */
+.result-card {
+  width: 100%;
+  max-width: 600px;
+  border-radius: var(--r-lg);
+  padding: 20px 24px;
+  text-align: center;
+}
+.result-card.ok { background: var(--c-success-bg); border: 1px solid var(--c-success-border); }
+.result-card.err { background: var(--c-danger-bg); border: 1px solid var(--c-danger-border); }
+.result-card h3 { font-size: 17px; margin-bottom: 6px; }
+.result-card.ok h3 { color: var(--c-success); }
+.result-card.err h3 { color: var(--c-danger); }
+.result-card p { font-size: 14px; color: var(--c-text-secondary); }
+
+/* ============================================================
+   OUTPUT / DOWNLOAD
+   ============================================================ */
+.output-folder { margin-bottom: 12px; }
+.output-folder-name {
+  font-weight: 600;
+  color: var(--c-text-primary);
+  padding: 8px 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+.output-folder-name .folder-icon { color: var(--c-accent); }
+.output-files { padding-left: 28px; display: flex; flex-direction: column; gap: 2px; }
+.output-file {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border-radius: var(--r-sm);
+  transition: background var(--t-fast);
+}
+.output-file:hover { background: var(--c-bg-hover); }
+.output-file a { color: var(--c-text-primary); text-decoration: none; display: flex; align-items: center; gap: 8px; flex: 1; font-weight: 500; font-size: 13px; }
+.output-file a:hover { color: var(--c-primary); }
+.output-file-size { font-size: 11px; color: var(--c-text-muted); font-family: var(--font-mono); }
+
+/* ============================================================
+   MODAL
+   ============================================================ */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.5);
+  backdrop-filter: blur(6px);
+  z-index: 200;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  animation: fadeIn 0.2s ease;
+}
+.modal-overlay.show { display: flex; }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+.modal {
+  background: var(--c-bg-card);
+  border-radius: var(--r-xl);
+  box-shadow: var(--shadow-xl);
+  width: 100%;
+  max-width: 600px;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: slideUp 0.25s ease;
+  border: 1px solid var(--c-border);
+}
+@keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+.modal-header {
+  padding: 18px 24px;
+  border-bottom: 1px solid var(--c-border-light);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.modal-header h3 { font-size: 17px; font-weight: 700; }
+.modal-body { padding: 24px; overflow-y: auto; flex: 1; }
+.modal-wide { max-width: 850px; }
+
+/* ============================================================
+   TOAST
+   ============================================================ */
+.toast-container { position: fixed; top: 80px; right: 24px; z-index: 300; display: flex; flex-direction: column; gap: 8px; }
+.toast {
+  padding: 12px 20px;
+  border-radius: var(--r-md);
+  font-size: 14px;
+  font-weight: 500;
+  box-shadow: var(--shadow-lg);
+  animation: toastIn 0.35s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: white;
+}
+.toast.success { background: var(--c-success); }
+.toast.error { background: var(--c-danger); }
+.toast.info { background: var(--c-primary); }
+@keyframes toastIn { from { opacity: 0; transform: translateX(40px); } to { opacity: 1; transform: translateX(0); } }
+
+/* ============================================================
+   DESIGN SPEC CALLOUT
+   ============================================================ */
+.spec-callout {
+  background: var(--c-primary-bg);
+  border: 1px solid var(--c-primary-border);
+  border-radius: var(--r-md);
+  padding: 12px 16px;
+  margin-bottom: 20px;
+  font-size: 13px;
+  color: var(--c-primary-dark);
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  line-height: 1.6;
+}
+.spec-callout svg { width: 18px; height: 18px; flex-shrink: 0; margin-top: 1px; }
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+@media (max-width: 768px) {
+  .upload-grid { grid-template-columns: 1fr; }
+  .form-grid { grid-template-columns: 1fr; }
+  .step-label { display: none; }
+  .header { padding: 0 14px; }
+  .main { padding: 16px 12px 32px; }
+  .card-body { padding: 16px; }
+  .card-header { padding: 14px 16px; }
+  .step-bar { padding: 12px 14px; }
+  .step-bar-inner { gap: 0; }
+  .btn-run { min-width: 160px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ===== HEADER ===== -->
+<header class="header">
+  <div class="header-inner">
+    <div class="logo">
+      <div class="logo-mark">⚡</div>
+      <div>
+        <span class="logo-text">检验批批量生成平台</span>
+        <span class="logo-version">v3.0</span>
+      </div>
+    </div>
+    <div class="header-actions">
+      <div class="header-status">
+        <span class="dot"></span>
+        <span>192.168.1.100:5005</span>
+      </div>
+      <button class="btn btn-outline btn-sm" onclick="showToast('已清空 15 个历史文件', 'success')">清空历史</button>
+      <button class="btn btn-ghost btn-sm" onclick="showToast('预设管理器（演示）', 'info')">预设方案</button>
+      <button class="theme-toggle" onclick="toggleTheme()" title="切换深色/浅色模式">
+        <svg class="moon-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        <svg class="sun-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<!-- ===== STEP PROGRESS BAR ===== -->
+<div class="step-bar">
+  <div class="step-bar-inner">
+    <div class="step-item completed" onclick="scrollToSection('section-upload')">
+      <div class="step-num">✓</div>
+      <span class="step-label">上传文件</span>
+    </div>
+    <div class="step-item active" onclick="scrollToSection('section-config')">
+      <div class="step-num">2</div>
+      <span class="step-label">任务配置</span>
+    </div>
+    <div class="step-item" onclick="scrollToSection('section-run')">
+      <div class="step-num">3</div>
+      <span class="step-label">执行生成</span>
+    </div>
+    <div class="step-item" onclick="scrollToSection('section-download')">
+      <div class="step-num">4</div>
+      <span class="step-label">结果下载</span>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MAIN ===== -->
+<main class="main">
+
+  <!-- DESIGN SPEC CALLOUT -->
+  <div class="spec-callout">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+    <span><strong>设计说明</strong> — 这是全新界面设计的交互式原型。点击右上角图标可切换深色/浅色模式。所有按钮均可点击体验交互效果。</span>
+  </div>
+
+  <!-- ===== STEP 1: UPLOAD ===== -->
+  <section class="card" id="section-upload">
+    <div class="card-header">
+      <h2>上传文件</h2>
+      <span class="card-hint">拖拽或点击上传 Word 模板和 Excel 数据文件</span>
+    </div>
+    <div class="card-body">
+      <div class="upload-grid">
+        <!-- Word upload -->
+        <div class="upload-panel">
+          <div class="upload-zone" id="dz-docx" onclick="simulateUpload('word')">
+            <div class="upload-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+            </div>
+            <p class="upload-title">Word 模板</p>
+            <p class="upload-desc">拖拽 .docx 文件到此处，或点击选择</p>
+          </div>
+          <div class="file-panel">
+            <div class="file-panel-header">
+              <span>模板文件</span>
+              <span class="file-badge">2</span>
+            </div>
+            <div class="file-item">
+              <div class="file-item-icon word">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+              </div>
+              <div class="file-item-info">
+                <div class="file-item-name">检验批模板_通用.docx</div>
+                <div class="file-item-meta">34.2 KB · 12 个占位符</div>
+              </div>
+              <div class="file-item-actions">
+                <button class="file-action-btn" title="打开原文件" onclick="showToast('已打开：检验批模板_通用.docx', 'success')">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                </button>
+                <button class="file-action-btn" title="刷新" onclick="showToast('已刷新文件内容', 'info')">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+                </button>
+                <button class="file-action-btn danger" title="删除" onclick="showToast('文件已删除', 'info')">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                </button>
+              </div>
+            </div>
+            <div class="file-item">
+              <div class="file-item-icon word">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+              </div>
+              <div class="file-item-info">
+                <div class="file-item-name">隐蔽工程验收记录.docx</div>
+                <div class="file-item-meta">28.7 KB · 8 个占位符</div>
+              </div>
+              <div class="file-item-actions">
+                <button class="file-action-btn" title="打开原文件" onclick="showToast('已打开：隐蔽工程验收记录.docx', 'success')">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                </button>
+                <button class="file-action-btn" title="刷新" onclick="showToast('已刷新文件内容', 'info')">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+                </button>
+                <button class="file-action-btn danger" title="删除" onclick="showToast('文件已删除', 'info')">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Excel upload -->
+        <div class="upload-panel">
+          <div class="upload-zone" id="dz-xlsx" onclick="simulateUpload('excel')">
+            <div class="upload-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="15" y1="3" x2="15" y2="21"/></svg>
+            </div>
+            <p class="upload-title">Excel 数据</p>
+            <p class="upload-desc">拖拽 .xlsx / .xls 文件到此处，或点击选择</p>
+          </div>
+          <div class="file-panel">
+            <div class="file-panel-header">
+              <span>数据文件</span>
+              <span class="file-badge">1</span>
+            </div>
+            <div class="file-item">
+              <div class="file-item-icon excel">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="15" y1="3" x2="15" y2="21"/></svg>
+              </div>
+              <div class="file-item-info">
+                <div class="file-item-name">检验批数据汇总.xlsx</div>
+                <div class="file-item-meta">156.3 KB · 3 个工作表 · 48 行数据</div>
+              </div>
+              <div class="file-item-actions">
+                <button class="file-action-btn" title="打开原文件" onclick="showToast('已打开：检验批数据汇总.xlsx', 'success')">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                </button>
+                <button class="file-action-btn" title="刷新" onclick="showToast('已刷新文件内容', 'info')">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+                </button>
+                <button class="file-action-btn danger" title="删除" onclick="showToast('文件已删除', 'info')">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== STEP 2: TASK CONFIG ===== -->
+  <section class="card" id="section-config">
+    <div class="card-header">
+      <h2>任务配置</h2>
+      <span class="card-hint">配置模板与数据的对应关系和生成参数</span>
+      <div class="card-header-actions">
+        <button class="btn btn-sm btn-outline" onclick="showToast('已加载预设方案', 'success')">加载预设</button>
+        <button class="btn btn-sm btn-primary" onclick="addTask()">+ 添加任务</button>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="task-list" id="taskList">
+
+        <!-- Task 1 -->
+        <div class="task-card">
+          <div class="task-card-head">
+            <div class="task-card-title">
+              <div class="task-badge">1</div>
+              任务 1
+            </div>
+            <div class="task-card-actions">
+              <button class="btn btn-xs btn-outline" onclick="showToast('字段匹配检查（演示）', 'info')">字段匹配</button>
+              <button class="btn btn-xs btn-outline" onclick="showToast('模板工作台（演示）', 'info')">模板工作台</button>
+              <button class="btn btn-xs btn-outline" onclick="showToast('数据预览（演示）', 'info')">数据预览</button>
+              <button class="btn btn-xs btn-outline" onclick="showToast('选择生成行（演示）', 'info')">选择生成行</button>
+              <button class="btn btn-xs btn-ghost" style="color:var(--c-danger)" onclick="removeTask(this)">删除</button>
+            </div>
+          </div>
+          <div class="task-card-body">
+            <div class="form-grid">
+              <div class="form-group">
+                <label class="form-label">Word 模板 <span class="req">*</span></label>
+                <select class="form-select">
+                  <option>检验批模板_通用.docx</option>
+                  <option>隐蔽工程验收记录.docx</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Excel 数据文件 <span class="req">*</span></label>
+                <select class="form-select">
+                  <option>检验批数据汇总.xlsx</option>
+                </select>
+              </div>
+              <div class="form-group form-group-full">
+                <label class="form-label">工作表 (Sheet) <span class="req">*</span> — 可多选</label>
+                <div class="sheet-list">
+                  <button class="btn btn-xs btn-outline" onclick="sheetSelectAll(this)">全选</button>
+                  <label class="sheet-chip active" onclick="toggleChip(this)"><input type="checkbox" checked>Sheet1</label>
+                  <label class="sheet-chip active" onclick="toggleChip(this)"><input type="checkbox" checked>检验批数据</label>
+                  <label class="sheet-chip" onclick="toggleChip(this)"><input type="checkbox">原材料数据</label>
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">文件命名字段 <span class="req">*</span></label>
+                <select class="form-select">
+                  <option>工程名称</option>
+                  <option>施工日期</option>
+                  <option>分项工程</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">输出子目录名</label>
+                <input class="form-input" placeholder="如：AB、隐蔽工程..." value="检验批AB">
+              </div>
+            </div>
+
+            <!-- Placeholder section -->
+            <div class="ph-section">
+              <div class="ph-header">
+                <span class="ph-title">模板占位符（12 个）</span>
+                <button class="btn btn-xs btn-ghost" onclick="togglePh(this)">收起</button>
+              </div>
+              <div class="ph-tags">
+                <span class="ph-tag matched">工程名称 ✓</span>
+                <span class="ph-tag matched">施工日期 ✓</span>
+                <span class="ph-tag matched">分项工程 ✓</span>
+                <span class="ph-tag matched">验收部位 ✓</span>
+                <span class="ph-tag matched">施工单位 ✓</span>
+                <span class="ph-tag matched">监理单位 ✓</span>
+                <span class="ph-tag matched">项目负责人 ✓</span>
+                <span class="ph-tag matched">施工员 ✓</span>
+                <span class="ph-tag matched">质量员 ✓</span>
+                <span class="ph-tag matched">监理工程师 ✓</span>
+                <span class="ph-tag missing">设计图纸编号 ⚠</span>
+                <span class="ph-tag missing">验收标准 ⚠</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Collapsible advanced settings -->
+          <div class="adv-toggle" onclick="toggleAdvanced(this)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+            高级设置
+          </div>
+          <div class="adv-content">
+            <div class="adv-inner">
+              <div class="form-grid">
+                <div class="form-group">
+                  <label class="form-label">日期格式</label>
+                  <input class="form-input" value="%Y年%m月%d日" placeholder="%Y年%m月%d日">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">强制整数列（逗号分隔）</label>
+                  <input class="form-input" placeholder="如：根设AB, 间距" value="根设AB, 间距">
+                </div>
+                <div class="form-group" style="flex-direction:row;align-items:center;padding-top:6px;">
+                  <label class="checkbox-label">
+                    <input type="checkbox" checked>
+                    <span>文件名加序号前缀 (001_)</span>
+                  </label>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="task-card-footer">
+            <span style="color:var(--c-accent);">📋 将生成全部 48 行数据</span>
+            <button class="btn btn-xs btn-ghost" style="color:var(--c-text-muted);margin-left:auto;">清除选择</button>
+          </div>
+        </div>
+
+        <!-- Task 2 -->
+        <div class="task-card">
+          <div class="task-card-head">
+            <div class="task-card-title">
+              <div class="task-badge">2</div>
+              任务 2
+            </div>
+            <div class="task-card-actions">
+              <button class="btn btn-xs btn-outline">字段匹配</button>
+              <button class="btn btn-xs btn-outline">模板工作台</button>
+              <button class="btn btn-xs btn-outline">数据预览</button>
+              <button class="btn btn-xs btn-outline">选择生成行</button>
+              <button class="btn btn-xs btn-ghost" style="color:var(--c-danger)" onclick="removeTask(this)">删除</button>
+            </div>
+          </div>
+          <div class="task-card-body">
+            <div class="form-grid">
+              <div class="form-group">
+                <label class="form-label">Word 模板 <span class="req">*</span></label>
+                <select class="form-select">
+                  <option>隐蔽工程验收记录.docx</option>
+                  <option>检验批模板_通用.docx</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Excel 数据文件 <span class="req">*</span></label>
+                <select class="form-select">
+                  <option>检验批数据汇总.xlsx</option>
+                </select>
+              </div>
+              <div class="form-group form-group-full">
+                <label class="form-label">工作表 (Sheet) <span class="req">*</span> — 可多选</label>
+                <div class="sheet-list">
+                  <button class="btn btn-xs btn-outline" onclick="sheetSelectAll(this)">全选</button>
+                  <label class="sheet-chip" onclick="toggleChip(this)"><input type="checkbox">Sheet1</label>
+                  <label class="sheet-chip" onclick="toggleChip(this)"><input type="checkbox">检验批数据</label>
+                  <label class="sheet-chip active" onclick="toggleChip(this)"><input type="checkbox" checked>原材料数据</label>
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">文件命名字段 <span class="req">*</span></label>
+                <select class="form-select">
+                  <option>材料名称</option>
+                  <option>进场日期</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">输出子目录名</label>
+                <input class="form-input" placeholder="如：AB、隐蔽工程..." value="原材料报审">
+              </div>
+            </div>
+          </div>
+          <div class="adv-toggle" onclick="toggleAdvanced(this)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+            高级设置
+          </div>
+          <div class="adv-content">
+            <div class="adv-inner">
+              <div class="form-grid">
+                <div class="form-group">
+                  <label class="form-label">日期格式</label>
+                  <input class="form-input" value="%Y年%m月%d日">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">强制整数列（逗号分隔）</label>
+                  <input class="form-input" placeholder="如：根设AB, 间距">
+                </div>
+                <div class="form-group" style="flex-direction:row;align-items:center;padding-top:6px;">
+                  <label class="checkbox-label">
+                    <input type="checkbox" checked>
+                    <span>文件名加序号前缀 (001_)</span>
+                  </label>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="task-card-footer">
+            <span style="color:var(--c-accent);">📋 已选择 12 / 24 行</span>
+            <button class="btn btn-xs btn-ghost" style="color:var(--c-text-muted);margin-left:auto;">清除选择</button>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Merge settings -->
+      <div class="merge-section">
+        <h3>文档合并设置</h3>
+        <label class="checkbox-label" style="margin-bottom:14px;">
+          <input type="checkbox" checked>
+          <span>生成后自动合并 Word 文档</span>
+        </label>
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <div class="merge-row">
+            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+              <span style="font-size:13px;font-weight:600;color:var(--c-accent);">合并 #1</span>
+              <select class="form-select" style="max-width:220px;">
+                <option>检验批AB (任务 1)</option>
+              </select>
+              <input class="form-input" value="检验批AB_合并.docx" style="max-width:200px;">
+              <button class="btn btn-sm btn-ghost" style="color:var(--c-danger);margin-left:auto;">✕</button>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+              <label style="font-size:12px;color:var(--c-text-muted);">排序模式：</label>
+              <select class="form-select" style="max-width:200px;">
+                <option>3. 按Excel原始顺序</option>
+                <option>1. 按文档内编号+续号</option>
+                <option>2. 按文档内日期</option>
+              </select>
+              <button class="btn btn-sm btn-outline" style="font-size:12px;">预览排序</button>
+            </div>
+          </div>
+          <button class="btn btn-sm btn-outline" style="align-self:flex-start;">+ 添加合并任务</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== STEP 3: EXECUTE ===== -->
+  <section class="card" id="section-run">
+    <div class="card-header">
+      <h2>执行生成</h2>
+      <span class="card-hint">点击开始生成，后台执行实时查看进度</span>
+    </div>
+    <div class="card-body">
+      <div class="run-area">
+        <button class="btn btn-primary btn-lg btn-run" id="btnRun" onclick="simulateGenerate()">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg>
+          开始生成
+        </button>
+
+        <div class="progress-wrap" id="progressWrap" style="display:none;">
+          <div class="progress-head">
+            <span class="progress-title" id="progressTitle">生成中...</span>
+            <span class="progress-pct" id="progressPct">0%</span>
+          </div>
+          <div class="progress-track">
+            <div class="progress-fill" id="progressFill"></div>
+          </div>
+          <div class="progress-log" id="progressLog"></div>
+        </div>
+
+        <div class="result-card ok" id="resultCard" style="display:none;">
+          <h3>✓ 生成完成</h3>
+          <p>成功 48 / 48 条，耗时 3.2 秒</p>
+          <div style="margin-top:12px;padding:10px;background:var(--c-bg-card);border-radius:var(--r-md);text-align:left;font-size:12px;">
+            <p style="font-weight:600;margin-bottom:6px;">合并结果：成功 1 / 1</p>
+            <div style="display:flex;justify-content:space-between;padding:4px 0;">
+              <span>#1 检验批AB</span>
+              <span style="color:var(--c-success);">✓ 已合并 48 份 → 检验批AB_合并.docx</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== STEP 4: DOWNLOAD ===== -->
+  <section class="card" id="section-download" style="display:none;">
+    <div class="card-header">
+      <h2>结果下载</h2>
+      <span class="card-hint">点击文件名下载，或打包下载整个文件夹</span>
+      <div class="card-header-actions">
+        <button class="btn btn-outline btn-sm" onclick="showToast('已打开输出文件夹', 'success')">打开文件夹</button>
+        <button class="btn btn-primary btn-sm" onclick="showToast('正在打包下载...', 'info')">打包下载全部</button>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="output-folder">
+        <div class="output-folder-name">
+          <span class="folder-icon">📁</span> 检验批AB
+          <span style="font-size:11px;color:var(--c-text-muted);">(48 个文件)</span>
+          <button class="btn btn-xs btn-outline" style="margin-left:8px;">打包</button>
+        </div>
+        <div class="output-files">
+          <div class="output-file">
+            <a href="javascript:void(0)" onclick="showToast('下载：001_光伏组件安装检验批.docx', 'info')">
+              <span>📄</span> 001_光伏组件安装检验批.docx
+            </a>
+            <span class="output-file-size">32.1 KB</span>
+          </div>
+          <div class="output-file">
+            <a href="javascript:void(0)" onclick="showToast('下载：002_逆变器安装检验批.docx', 'info')">
+              <span>📄</span> 002_逆变器安装检验批.docx
+            </a>
+            <span class="output-file-size">31.8 KB</span>
+          </div>
+          <div class="output-file">
+            <a href="javascript:void(0)" onclick="showToast('下载：003_支架安装检验批.docx', 'info')">
+              <span>📄</span> 003_支架安装检验批.docx
+            </a>
+            <span class="output-file-size">30.5 KB</span>
+          </div>
+          <div class="output-file" style="opacity:0.5;">
+            <a href="javascript:void(0)">
+              <span>📄</span> ... 还有 45 个文件
+            </a>
+          </div>
+          <div class="output-file" style="border:1px solid var(--c-accent-border);background:var(--c-accent-light);border-radius:var(--r-sm);">
+            <a href="javascript:void(0)" onclick="showToast('下载合并文档', 'info')" style="color:var(--c-accent);font-weight:600;">
+              <span>📦</span> 检验批AB_合并.docx（合并文档）
+            </a>
+            <span class="output-file-size">1.2 MB</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<script>
+// ============================================================
+// THEME TOGGLE
+// ============================================================
+function toggleTheme() {
+  const html = document.documentElement;
+  const current = html.getAttribute('data-theme');
+  html.setAttribute('data-theme', current === 'dark' ? 'light' : 'dark');
+}
+
+// ============================================================
+// STEP NAVIGATION
+// ============================================================
+function scrollToSection(id) {
+  document.getElementById(id).scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// ============================================================
+// TOAST
+// ============================================================
+function showToast(msg, type) {
+  type = type || 'info';
+  let container = document.querySelector('.toast-container');
+  if (!container) {
+    container = document.createElement('div');
+    container.className = 'toast-container';
+    document.body.appendChild(container);
+  }
+  const toast = document.createElement('div');
+  toast.className = 'toast ' + type;
+  toast.textContent = msg;
+  container.appendChild(toast);
+  setTimeout(function() {
+    toast.style.opacity = '0';
+    toast.style.transition = 'opacity 0.3s';
+    setTimeout(function() { toast.remove(); }, 300);
+  }, 3000);
+}
+
+// ============================================================
+// COLLAPSIBLE ADVANCED SETTINGS
+// ============================================================
+function toggleAdvanced(el) {
+  el.classList.toggle('open');
+  const content = el.nextElementSibling;
+  content.classList.toggle('open');
+}
+
+// ============================================================
+// SHEET CHIP TOGGLE
+// ============================================================
+function toggleChip(el) {
+  el.classList.toggle('active');
+  const cb = el.querySelector('input');
+  cb.checked = el.classList.contains('active');
+}
+
+function sheetSelectAll(btn) {
+  const chips = btn.parentElement.querySelectorAll('.sheet-chip');
+  chips.forEach(function(c) {
+    c.classList.add('active');
+    c.querySelector('input').checked = true;
+  });
+  showToast('已全选工作表', 'info');
+}
+
+// ============================================================
+// PLACEHOLDER TOGGLE
+// ============================================================
+function togglePh(btn) {
+  const tags = btn.parentElement.nextElementSibling;
+  if (tags.style.display === 'none') {
+    tags.style.display = 'flex';
+    btn.textContent = '收起';
+  } else {
+    tags.style.display = 'none';
+    btn.textContent = '展开';
+  }
+}
+
+// ============================================================
+// TASK MANAGEMENT
+// ============================================================
+let taskCount = 2;
+
+function addTask() {
+  taskCount++;
+  const list = document.getElementById('taskList');
+  const card = document.createElement('div');
+  card.className = 'task-card';
+  card.innerHTML = `
+    <div class="task-card-head">
+      <div class="task-card-title">
+        <div class="task-badge">${taskCount}</div>
+        任务 ${taskCount}
+      </div>
+      <div class="task-card-actions">
+        <button class="btn btn-xs btn-outline" onclick="showToast('请先选择模板和Excel', 'error')">字段匹配</button>
+        <button class="btn btn-xs btn-outline" onclick="showToast('请先选择模板', 'error')">模板工作台</button>
+        <button class="btn btn-xs btn-outline" onclick="showToast('请先选择Excel', 'error')">数据预览</button>
+        <button class="btn btn-xs btn-ghost" style="color:var(--c-danger)" onclick="removeTask(this)">删除</button>
+      </div>
+    </div>
+    <div class="task-card-body">
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label">Word 模板 <span class="req">*</span></label>
+          <select class="form-select"><option value="">-- 选择模板 --</option><option>检验批模板_通用.docx</option><option>隐蔽工程验收记录.docx</option></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Excel 数据文件 <span class="req">*</span></label>
+          <select class="form-select"><option value="">-- 选择 Excel --</option><option>检验批数据汇总.xlsx</option></select>
+        </div>
+        <div class="form-group form-group-full">
+          <label class="form-label">工作表 (Sheet) <span class="req">*</span> — 可多选</label>
+          <div class="sheet-list"><span style="font-size:12px;color:var(--c-text-muted);">请先选择 Excel 文件</span></div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">文件命名字段 <span class="req">*</span></label>
+          <select class="form-select"><option value="">(请先选择Excel)</option></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">输出子目录名</label>
+          <input class="form-input" placeholder="如：AB、隐蔽工程...">
+        </div>
+      </div>
+    </div>
+    <div class="adv-toggle" onclick="toggleAdvanced(this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+      高级设置
+    </div>
+    <div class="adv-content">
+      <div class="adv-inner">
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label">日期格式</label>
+            <input class="form-input" value="%Y年%m月%d日">
+          </div>
+          <div class="form-group">
+            <label class="form-label">强制整数列（逗号分隔）</label>
+            <input class="form-input" placeholder="如：根设AB, 间距">
+          </div>
+          <div class="form-group" style="flex-direction:row;align-items:center;padding-top:6px;">
+            <label class="checkbox-label">
+              <input type="checkbox" checked>
+              <span>文件名加序号前缀 (001_)</span>
+            </label>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+  list.appendChild(card);
+  showToast('已添加任务 ' + taskCount, 'success');
+}
+
+function removeTask(btn) {
+  if (!confirm('确定删除此任务？')) return;
+  const card = btn.closest('.task-card');
+  card.style.opacity = '0';
+  card.style.transition = 'opacity 0.2s';
+  setTimeout(function() { card.remove(); showToast('任务已删除', 'info'); }, 200);
+}
+
+// ============================================================
+// SIMULATE UPLOAD
+// ============================================================
+function simulateUpload(type) {
+  const names = type === 'word' ? ['新模板.docx'] : ['新数据.xlsx'];
+  showToast('上传成功：' + names[0], 'success');
+}
+
+// ============================================================
+// SIMULATE GENERATE
+// ============================================================
+function simulateGenerate() {
+  const btn = document.getElementById('btnRun');
+  const wrap = document.getElementById('progressWrap');
+  const fill = document.getElementById('progressFill');
+  const pct = document.getElementById('progressPct');
+  const title = document.getElementById('progressTitle');
+  const log = document.getElementById('progressLog');
+  const result = document.getElementById('resultCard');
+  const download = document.getElementById('section-download');
+
+  btn.disabled = true;
+  btn.innerHTML = '生成中...';
+  wrap.style.display = 'block';
+  result.style.display = 'none';
+  log.innerHTML = '';
+  fill.style.width = '0%';
+  pct.textContent = '0%';
+  title.textContent = '正在准备...';
+
+  const files = [
+    '001_光伏组件安装检验批.docx',
+    '002_逆变器安装检验批.docx',
+    '003_支架安装检验批.docx',
+    '004_电缆敷设检验批.docx',
+    '005_接地装置检验批.docx'
+  ];
+
+  let i = 0;
+  const total = 48;
+  const interval = setInterval(function() {
+    if (i < files.length) {
+      const current = (i + 1) * 10;
+      const percent = Math.round((current / total) * 100);
+      fill.style.width = percent + '%';
+      pct.textContent = percent + '%';
+      title.textContent = '生成中...';
+      log.innerHTML += '<div class="log-success">[' + (i+1) + '/' + total + '] ✓ ' + files[i] + '</div>';
+      log.scrollTop = log.scrollHeight;
+      i++;
+    } else {
+      fill.style.width = '100%';
+      pct.textContent = '100%';
+      title.textContent = '已完成';
+      log.innerHTML += '<div class="log-success">[48/48] ✓ 全部生成完成</div>';
+      log.innerHTML += '<div class="log-success">[合并] ✓ 检验批AB_合并.docx (48 份)</div>';
+      log.scrollTop = log.scrollHeight;
+      clearInterval(interval);
+      result.style.display = 'block';
+      download.style.display = 'block';
+      btn.disabled = false;
+      btn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg>重新生成';
+      showToast('生成完成！成功 48/48 条', 'success');
+    }
+  }, 600);
+}
+
+// ============================================================
+// DRAG & DROP (visual feedback only)
+// ============================================================
+document.querySelectorAll('.upload-zone').forEach(function(zone) {
+  zone.addEventListener('dragover', function(e) {
+    e.preventDefault();
+    zone.classList.add('drag-over');
+  });
+  zone.addEventListener('dragleave', function() {
+    zone.classList.remove('drag-over');
+  });
+  zone.addEventListener('drop', function(e) {
+    e.preventDefault();
+    zone.classList.remove('drag-over');
+    const type = zone.id.includes('docx') ? 'word' : 'excel';
+    simulateUpload(type);
+  });
+});
+
+// ============================================================
+// AUTO-DETECT SYSTEM THEME
+// ============================================================
+(function() {
+  if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+    document.documentElement.setAttribute('data-theme', 'dark');
+  }
+})();
+</script>
+</body>
+</html>

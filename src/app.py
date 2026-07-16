@@ -25,6 +25,7 @@
    /api/cleanup/session       — 清空当前会话
    /api/cleanup/all           — 清空全部
    /api/open-folder           — 打开文件夹
+   /api/open-file             — 用系统默认程序打开原始文件
 ================================================================================
 """
 import os
@@ -837,13 +838,43 @@ def open_folder():
         return jsonify({'error': '目录不存在，请先生成文件'}), 404
 
     import subprocess
-    import sys
-    if sys.platform == 'win32':
+    import sys as _sys
+    if _sys.platform == 'win32':
         subprocess.Popen(['explorer', str(base.resolve())])
+    elif _sys.platform == 'darwin':
+        subprocess.Popen(['open', str(base.resolve())])
     else:
-        subprocess.Popen(['open', str(base.resolve())] if sys.platform == 'darwin'
-                         else ['xdg-open', str(base.resolve())])
+        subprocess.Popen(['xdg-open', str(base.resolve())])
     return jsonify({'status': 'ok', 'path': str(base.resolve())})
+
+
+@app.route('/api/open-file', methods=['POST'])
+def open_file():
+    """用系统默认程序打开原始文件（跨平台）"""
+    import sys as _sys
+    data = request.get_json() or {}
+    file_path = data.get('path', '')
+
+    if not file_path:
+        return jsonify({'error': '未指定文件路径'}), 400
+
+    path = Path(file_path)
+    if not path.exists():
+        return jsonify({'error': '文件不存在'}), 404
+
+    if not is_path_safe(path, [UPLOAD_DIR, OUTPUT_DIR]):
+        return jsonify({'error': '非法路径'}), 403
+
+    try:
+        if _sys.platform == 'win32':
+            os.startfile(str(path.resolve()))
+        elif _sys.platform == 'darwin':
+            subprocess.Popen(['open', str(path.resolve())])
+        else:
+            subprocess.Popen(['xdg-open', str(path.resolve())])
+        return jsonify({'status': 'ok', 'path': str(path.resolve())})
+    except Exception as e:
+        return jsonify({'error': f'打开文件失败: {e}'}), 500
 
 
 # ============================================================
